@@ -114,6 +114,12 @@ RUN apt-get update \
 RUN curl -s http://getcomposer.org/installer | php \
   && mv composer.phar /usr/local/bin/composer
 
+# Install WP-CLI
+RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar \
+  && chmod +x wp-cli.phar \
+  && mv wp-cli.phar /usr/local/bin/wp \
+  && wp --info
+
 ENV WEB_ROOT /var/www/html
 ENV APACHE_DOCUMENT_ROOT ${WEB_ROOT}/web
 
