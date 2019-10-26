@@ -1,7 +1,7 @@
 FROM php:7.3-apache
 
 ################################################################################
-# FROM Official WordPress Image
+# From the official WordPress image
 # https://github.com/docker-library/wordpress/blob/master/php7.3/apache/Dockerfile
 ################################################################################
 # install the PHP extensions we need (https://make.wordpress.org/hosting/handbook/handbook/server-environment/#php-extensions)
