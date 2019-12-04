@@ -1,4 +1,4 @@
-FROM php:7.3-apache
+FROM php:7.4-apache
 
 ################################################################################
 # From the official WordPress image
@@ -18,11 +18,7 @@ RUN set -ex; \
   libzip-dev \
   ; \
   \
-  docker-php-ext-configure gd \
-  --with-freetype-dir=/usr \
-  --with-jpeg-dir=/usr \
-  --with-png-dir=/usr \
-  ; \
+  docker-php-ext-configure gd --with-freetype --with-jpeg; \
   docker-php-ext-install -j "$(nproc)" \
   bcmath \
   exif \
