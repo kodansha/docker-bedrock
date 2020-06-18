@@ -2,7 +2,7 @@ FROM php:7.4-apache
 
 ################################################################################
 # From the official WordPress image
-# https://github.com/docker-library/wordpress/blob/master/php7.3/apache/Dockerfile
+# https://github.com/docker-library/wordpress/blob/master/php7.4/apache/Dockerfile
 ################################################################################
 # persistent dependencies
 RUN set -eux; \
