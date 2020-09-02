@@ -1,4 +1,4 @@
-# Bedrock Bedrock
+# Docker Image for Bedrock
 
-"Bedrock Bedrock" is a configured PHP Docker image as a bedrock environment for
+This is a configured PHP Docker image as a base environment for
 [Bedrock](https://roots.io/bedrock/) WordPress boilerplate.
