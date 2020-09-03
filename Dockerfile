@@ -113,6 +113,7 @@ RUN { \
 RUN apt-get update \
   && apt-get install --yes --no-install-recommends \
   git \
+  unzip \
   && apt-get clean \
   && rm --recursive --force /var/lib/apt/lists/*
 
