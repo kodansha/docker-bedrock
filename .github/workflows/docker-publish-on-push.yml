@@ -1,4 +1,4 @@
-name: Docker
+name: Docker Publish on Push
 
 on:
   push:
@@ -24,7 +24,7 @@ jobs:
 
       - name: Check if workflow is changed
         id: check
-        run: echo "::set-output name=changed::$(git diff --name-only HEAD HEAD~ | grep '^.github/workflows/docker-publish.yml$' | xargs)"
+        run: echo "::set-output name=changed::$(git diff --name-only HEAD HEAD~ | grep '^.github/workflows/docker-publish-on-push.yml$' | xargs)"
 
   # Get only changed Dockerfiles
   changed-docker-files:
