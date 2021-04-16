@@ -66,7 +66,7 @@ jobs:
             dockerfiles=$(find . -maxdepth 2 -type f -name Dockerfile | sed 's|^./||' | xargs)
           else
             echo Build and push only changed versions of Docker images
-            dockerfiles=${{ needs.changed-docker-files.outputs.files }}
+            dockerfiles="${{ needs.changed-docker-files.outputs.files }}"
           fi
 
           for dockerfile in $dockerfiles ; do
