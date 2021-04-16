@@ -1,4 +1,4 @@
-FROM php:7.4-apache
+FROM php:8.0-apache
 
 ################################################################################
 # From the official WordPress image
@@ -22,7 +22,6 @@ RUN set -ex; \
 	apt-get install -y --no-install-recommends \
 		libfreetype6-dev \
 		libjpeg-dev \
-		libmagickwand-dev \
 		libpng-dev \
 		libzip-dev \
 	; \
@@ -38,9 +37,6 @@ RUN set -ex; \
 		mysqli \
 		zip \
 	; \
-	pecl install imagick-3.4.4; \
-	docker-php-ext-enable imagick; \
-	rm -r /tmp/pear; \
 	\
 # reset apt-mark's "manual" list so that "purge --auto-remove" will remove all build dependencies
 	apt-mark auto '.*' > /dev/null; \
