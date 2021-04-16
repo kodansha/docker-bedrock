@@ -2,7 +2,7 @@ FROM php:7.4-apache
 
 ################################################################################
 # From the official WordPress image
-# https://github.com/docker-library/wordpress/blob/master/php7.4/apache/Dockerfile
+# https://github.com/docker-library/wordpress
 ################################################################################
 # persistent dependencies
 RUN set -eux; \
@@ -40,6 +40,7 @@ RUN set -ex; \
 	; \
 	pecl install imagick-3.4.4; \
 	docker-php-ext-enable imagick; \
+	rm -r /tmp/pear; \
 	\
 # reset apt-mark's "manual" list so that "purge --auto-remove" will remove all build dependencies
 	apt-mark auto '.*' > /dev/null; \
@@ -131,6 +132,7 @@ RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli
 
 ENV WEB_ROOT /var/www/html
 ENV APACHE_DOCUMENT_ROOT ${WEB_ROOT}/web
+
 
 # Replace webroot strings in Apache config files
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
