@@ -1,0 +1,40 @@
+name: Docker Publish Daily
+
+on:
+  schedule:
+    - cron: "15 17 * * *"
+
+env:
+  IMAGE_ID: ghcr.io/kodansha/bedrock
+  LATEST_VERSION: php8.0
+
+jobs:
+  # Push image to GitHub Packages.
+  # See also https://docs.docker.com/docker-hub/builds/
+  push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Log into GitHub Container Registry
+        run: echo "${{ secrets.CR_PAT }}" | docker login https://ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build and push Docker images
+        run: |
+          dockerfiles=$(find . -maxdepth 2 -type f -name Dockerfile | sed 's|^./||' | xargs)
+
+          for dockerfile in $dockerfiles ; do
+            version=$(dirname $dockerfile)
+            echo Building Docker image $version...
+            echo Docker tag is: $IMAGE_ID:$version
+
+            if [ $version = $LATEST_VERSION ] ; then
+              docker build . --file $dockerfile --tag $IMAGE_ID:$version --tag $IMAGE_ID:latest
+              docker push $IMAGE_ID:$version
+              docker push $IMAGE_ID:latest
+            else
+              docker build . --file $dockerfile --tag $IMAGE_ID:$version
+              docker push $IMAGE_ID:$version
+            fi
+          done
