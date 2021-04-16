@@ -118,13 +118,16 @@ RUN apt-get update \
   && rm --recursive --force /var/lib/apt/lists/*
 
 # Install Composer
-RUN curl -s http://getcomposer.org/installer | php \
-  && mv composer.phar /usr/local/bin/composer
+RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" \
+  && php composer-setup.php --install-dir=/usr/local/bin --filename=composer \
+  && php -r "unlink('composer-setup.php');" \
+  && composer --version
 
 # Install WP-CLI
 RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar \
   && chmod +x wp-cli.phar \
-  && mv wp-cli.phar /usr/local/bin/wp
+  && mv wp-cli.phar /usr/local/bin/wp \
+  && wp --info
 
 ENV WEB_ROOT /var/www/html
 ENV APACHE_DOCUMENT_ROOT ${WEB_ROOT}/web
