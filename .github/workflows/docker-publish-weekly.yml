@@ -1,8 +1,8 @@
-name: Docker Publish Daily
+name: Docker Publish Weekly
 
 on:
   schedule:
-    - cron: "30 8 * * *"
+    - cron: "0 18 * * 0"
 
 env:
   IMAGE_ID: ghcr.io/kodansha/bedrock
