@@ -57,7 +57,7 @@ RUN set -ex; \
 	rm -rf /var/lib/apt/lists/*
 
 # set recommended PHP.ini settings
-# see https://secure.php.net/manual/en/opcache.installation.php
+# see https://secure.php.net/manual/en/pcache.installation.php
 RUN set -eux; \
 	docker-php-ext-enable opcache; \
 	{ \
@@ -106,8 +106,7 @@ RUN set -eux; \
 RUN { \
   echo 'file_uploads = On'; \
   echo 'memory_limit = 256M'; \
-  echo 'upload_max_size = 64M'; \
-  echo 'post_max_size = 64M'; \
+  echo 'post_max_size = 128M'; \
   echo 'upload_max_filesize = 64M'; \
   echo 'max_execution_time = 300'; \
   echo 'max_input_time = 1000'; \
