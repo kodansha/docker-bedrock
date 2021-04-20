@@ -103,16 +103,6 @@ RUN set -eux; \
 	find /etc/apache2 -type f -name '*.conf' -exec sed -ri 's/([[:space:]]*LogFormat[[:space:]]+"[^"]*)%h([^"]*")/\1%a\2/g' '{}' +
 ################################################################################
 
-# PHP file upload configuration
-RUN { \
-  echo 'file_uploads = On'; \
-  echo 'memory_limit = 256M'; \
-  echo 'post_max_size = 128M'; \
-  echo 'upload_max_filesize = 64M'; \
-  echo 'max_execution_time = 300'; \
-  echo 'max_input_time = 1000'; \
-  } > /usr/local/etc/php/conf.d/upload.ini
-
 # Install extra package dependencies
 RUN apt-get update \
   && apt-get install --yes --no-install-recommends \
