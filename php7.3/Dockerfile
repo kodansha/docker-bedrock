@@ -105,7 +105,7 @@ RUN set -eux; \
 
 # PHP custom configuration
 RUN { \
-  echo 'expose_php = off'; \
+  echo 'expose_php = Off'; \
   } > /usr/local/etc/php/conf.d/custom.ini
 
 # Install extra package dependencies

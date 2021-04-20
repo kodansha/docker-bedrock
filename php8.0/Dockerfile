@@ -100,8 +100,8 @@ RUN set -eux; \
 
 # PHP custom configuration
 RUN { \
-  echo 'zend.exception_ignore_args = on;' \
-  echo 'expose_php = off'; \
+  echo 'zend.exception_ignore_args = On'; \
+  echo 'expose_php = Off'; \
   } > /usr/local/etc/php/conf.d/custom.ini
 
 # Install extra package dependencies
