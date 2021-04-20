@@ -31,9 +31,7 @@ FROM base AS production
 WORKDIR ${WEB_ROOT}
 
 # Install PHP package dependencies
-COPY --chown=www-data:www-data composer.json ${WEB_ROOT}
-COPY --chown=www-data:www-data composer.lock ${WEB_ROOT}
-COPY --chown=www-data:www-data auth.json ${WEB_ROOT}
+COPY --chown=www-data:www-data composer.json composer.lock ${WEB_ROOT}
 RUN composer install
 
 COPY --chown=www-data:www-data . ${WEB_ROOT}
