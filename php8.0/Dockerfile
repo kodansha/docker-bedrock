@@ -22,13 +22,16 @@ RUN set -ex; \
 	apt-get install -y --no-install-recommends \
 		libfreetype6-dev \
 		libjpeg-dev \
+		libmagickwand-dev \
 		libpng-dev \
+		libwebp-dev \
 		libzip-dev \
 	; \
 	\
 	docker-php-ext-configure gd \
 		--with-freetype \
 		--with-jpeg \
+		--with-webp \
 	; \
 	docker-php-ext-install -j "$(nproc)" \
 		bcmath \
@@ -37,6 +40,10 @@ RUN set -ex; \
 		mysqli \
 		zip \
 	; \
+# https://pecl.php.net/package/imagick
+	pecl install imagick-3.5.0; \
+	docker-php-ext-enable imagick; \
+	rm -r /tmp/pear; \
 	\
 # reset apt-mark's "manual" list so that "purge --auto-remove" will remove all build dependencies
 	apt-mark auto '.*' > /dev/null; \

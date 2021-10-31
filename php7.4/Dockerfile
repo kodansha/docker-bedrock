@@ -24,12 +24,14 @@ RUN set -ex; \
 		libjpeg-dev \
 		libmagickwand-dev \
 		libpng-dev \
+		libwebp-dev \
 		libzip-dev \
 	; \
 	\
 	docker-php-ext-configure gd \
 		--with-freetype \
 		--with-jpeg \
+		--with-webp \
 	; \
 	docker-php-ext-install -j "$(nproc)" \
 		bcmath \
@@ -38,7 +40,8 @@ RUN set -ex; \
 		mysqli \
 		zip \
 	; \
-	pecl install imagick-3.4.4; \
+# https://pecl.php.net/package/imagick
+	pecl install imagick-3.5.0; \
 	docker-php-ext-enable imagick; \
 	rm -r /tmp/pear; \
 	\
@@ -57,7 +60,7 @@ RUN set -ex; \
 	rm -rf /var/lib/apt/lists/*
 
 # set recommended PHP.ini settings
-# see https://secure.php.net/manual/en/pcache.installation.php
+# see https://secure.php.net/manual/en/opcache.installation.php
 RUN set -eux; \
 	docker-php-ext-enable opcache; \
 	{ \
