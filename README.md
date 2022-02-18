@@ -9,6 +9,8 @@ https://github.com/orgs/kodansha/packages/container/package/bedrock
 
 ## Typical Usage Example
 
+### Apache
+
 ```dockerfile
 FROM ghcr.io/kodansha/bedrock:php8.0 AS base
 
@@ -52,3 +54,7 @@ RUN { \
 
 COPY --from=production --chown=www-data:www-data ${WEB_ROOT}/ ${WEB_ROOT}/
 ```
+
+### PHP-FPM + Nginx
+
+WIP
