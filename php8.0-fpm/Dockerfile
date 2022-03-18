@@ -102,12 +102,6 @@ RUN { \
 
 ################################################################################
 
-# PHP custom configuration
-RUN { \
-  echo 'zend.exception_ignore_args = On'; \
-  echo 'expose_php = Off'; \
-  } > /usr/local/etc/php/conf.d/custom.ini
-
 # Install extra package dependencies
 RUN apt-get update \
   && apt-get install --yes --no-install-recommends \
@@ -115,6 +109,17 @@ RUN apt-get update \
   unzip \
   && apt-get clean \
   && rm --recursive --force /var/lib/apt/lists/*
+
+# Install PHP extra extension
+RUN pecl install redis-5.3.7 \
+  && docker-php-ext-enable redis \
+  && rm -r /tmp/pear
+
+# PHP custom configuration
+RUN { \
+  echo 'zend.exception_ignore_args = On'; \
+  echo 'expose_php = Off'; \
+  } > /usr/local/etc/php/conf.d/custom.ini
 
 # Install Composer
 RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" \
