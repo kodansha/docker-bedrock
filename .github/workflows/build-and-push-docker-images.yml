@@ -8,29 +8,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
+        uses: docker/setup-qemu-action@v2
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        id: buildx
+        uses: docker/setup-buildx-action@v2
 
       - name: Login to DockerHub
-        uses: docker/login-action@v1
+        uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v1
+        uses: docker/login-action@v2
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.CR_PAT }}
 
       - name: Build and push PHP 8.1 (PHP-FPM) image
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         with:
           context: ./php8.1-fpm
           platforms: linux/amd64,linux/arm64
@@ -42,7 +43,7 @@ jobs:
             ghcr.io/kodansha/bedrock:php8.1.9-fpm
 
       - name: Build and push PHP 8.0 (PHP-FPM) image
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         with:
           context: ./php8.0-fpm
           platforms: linux/amd64,linux/arm64
@@ -54,7 +55,7 @@ jobs:
             ghcr.io/kodansha/bedrock:php8.0.22-fpm
 
       - name: Build and push PHP 8.1 image
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         with:
           context: ./php8.1
           platforms: linux/amd64,linux/arm64
@@ -68,7 +69,7 @@ jobs:
             ghcr.io/kodansha/bedrock:php8.1.9
 
       - name: Build and push PHP 8.0 image
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         with:
           context: ./php8.0
           platforms: linux/amd64,linux/arm64
@@ -80,7 +81,7 @@ jobs:
             ghcr.io/kodansha/bedrock:php8.0.22
 
       - name: Build and push PHP 7.4 image
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         with:
           context: ./php7.4
           platforms: linux/amd64,linux/arm64
@@ -92,7 +93,7 @@ jobs:
             ghcr.io/kodansha/bedrock:php7.4.28
 
       - name: Build and push PHP 7.3 image
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         with:
           context: ./php7.3
           platforms: linux/amd64,linux/arm64
