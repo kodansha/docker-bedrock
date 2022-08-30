@@ -1,4 +1,4 @@
-FROM php:7.3-apache
+FROM php:7.3.33-apache
 
 ################################################################################
 # From the official WordPress image
