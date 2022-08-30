@@ -88,9 +88,9 @@ jobs:
           push: true
           tags: |
             kodansha/bedrock:php7.4
-            kodansha/bedrock:php7.4.28
+            kodansha/bedrock:php7.4.30
             ghcr.io/kodansha/bedrock:php7.4
-            ghcr.io/kodansha/bedrock:php7.4.28
+            ghcr.io/kodansha/bedrock:php7.4.30
 
       - name: Build and push PHP 7.3 image
         uses: docker/build-push-action@v3
