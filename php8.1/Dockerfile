@@ -122,34 +122,34 @@ RUN set -eux; \
 
 # Install extra package dependencies
 RUN apt-get update \
-  && apt-get install --yes --no-install-recommends \
-  git \
-  unzip \
-  && apt-get clean \
-  && rm --recursive --force /var/lib/apt/lists/*
+	&& apt-get install --yes --no-install-recommends \
+	git \
+	unzip \
+	&& apt-get clean \
+	&& rm --recursive --force /var/lib/apt/lists/*
 
 # Install PHP extra extension
 RUN pecl install redis-5.3.7 \
-  && docker-php-ext-enable redis \
-  && rm -r /tmp/pear
+	&& docker-php-ext-enable redis \
+	&& rm -r /tmp/pear
 
 # PHP custom configuration
 RUN { \
-  echo 'zend.exception_ignore_args = On'; \
-  echo 'expose_php = Off'; \
-  } > /usr/local/etc/php/conf.d/custom.ini
+	echo 'zend.exception_ignore_args = On'; \
+	echo 'expose_php = Off'; \
+	} > /usr/local/etc/php/conf.d/custom.ini
 
 # Install Composer
 RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" \
-  && php composer-setup.php --install-dir=/usr/local/bin --filename=composer \
-  && php -r "unlink('composer-setup.php');" \
-  && composer --version
+	&& php composer-setup.php --install-dir=/usr/local/bin --filename=composer \
+	&& php -r "unlink('composer-setup.php');" \
+	&& composer --version
 
 # Install WP-CLI
 RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar \
-  && chmod +x wp-cli.phar \
-  && mv wp-cli.phar /usr/local/bin/wp \
-  && wp --info
+	&& chmod +x wp-cli.phar \
+	&& mv wp-cli.phar /usr/local/bin/wp \
+	&& wp --info
 
 ENV WEB_ROOT /var/www/html
 ENV APACHE_DOCUMENT_ROOT ${WEB_ROOT}/web
