@@ -1,0 +1,57 @@
+name: PHP 8.2
+
+on:
+  workflow_dispatch:
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.CR_PAT }}
+
+      - name: Build and push PHP 8.2 image
+        uses: docker/build-push-action@v3
+        with:
+          context: ./php8.2
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            kodansha/bedrock:latest
+            kodansha/bedrock:php8.2
+            kodansha/bedrock:php8.2.1
+            ghcr.io/kodansha/bedrock:latest
+            ghcr.io/kodansha/bedrock:php8.2
+            ghcr.io/kodansha/bedrock:php8.2.1
+
+      - name: Build and push PHP 8.2 (PHP-FPM) image
+        uses: docker/build-push-action@v3
+        with:
+          context: ./php8.2-fpm
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            kodansha/bedrock:php8.2-fpm
+            kodansha/bedrock:php8.2.1-fpm
+            ghcr.io/kodansha/bedrock:php8.2-fpm
+            ghcr.io/kodansha/bedrock:php8.2.1-fpm
