@@ -1,4 +1,4 @@
-FROM php:8.0.29-fpm
+FROM php:8.0.29-fpm-bullseye
 
 ################################################################################
 # From the official WordPress image

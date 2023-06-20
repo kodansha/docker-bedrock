@@ -1,4 +1,4 @@
-FROM php:8.0.29-apache
+FROM php:8.0.29-apache-bullseye
 
 ################################################################################
 # From the official WordPress image
