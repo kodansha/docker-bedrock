@@ -101,6 +101,12 @@ RUN { \
 
 ################################################################################
 
+# Change www-data user's UID and GID to 101 to match nginx user's UID and GID in the official nginx image.
+# https://hub.docker.com/_/nginx 
+# https://stackoverflow.com/questions/36824222/how-to-change-the-nginx-process-user-of-the-official-docker-image-nginx
+RUN usermod -u 101 -o www-data \
+	&& groupmod -g 101 -o www-data
+
 # Install extra package dependencies
 RUN apt-get update \
 	&& apt-get install --yes --no-install-recommends \
