@@ -1,2 +1,4 @@
 # Mac OS artifacts
 .DS_Store
+
+scripts/.temp.txt
