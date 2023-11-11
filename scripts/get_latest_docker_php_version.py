@@ -14,12 +14,16 @@ def get_latest_php_tags():
 
         for tag in tags:
             tag_name = tag['name']
-            match = re.match(r'^(\d+\.\d+)\.(\d+)$', tag_name)
+            # 8.x.x および 8.x.x-fpm のパターンに対応
+            match = re.match(r'^(\d+\.\d+)(\.(\d+))?(?:-fpm)?$', tag_name)
             if match:
                 major_minor = match.group(1)
-                patch = int(match.group(2))
-                if major_minor not in latest_versions or patch > latest_versions[major_minor][1]:
-                    latest_versions[major_minor] = (tag_name, patch)
+                patch = int(match.group(3)) if match.group(3) else 0
+                tag_type = 'fpm' if '-fpm' in tag_name else 'regular'
+                key = (major_minor, tag_type)
+
+                if key not in latest_versions or patch > latest_versions[key][1]:
+                    latest_versions[key] = (tag_name, patch)
 
         return data.get('next')
 
@@ -33,5 +37,5 @@ def get_latest_php_tags():
     return {k: v[0] for k, v in latest_versions.items()}
 
 latest_tags = get_latest_php_tags()
-for version, tag in latest_tags.items():
-    print(f"Latest tag for PHP {version}: {tag}")
+for (version, tag_type), tag in latest_tags.items():
+    print(f"Latest tag for PHP {version} {'FPM' if tag_type == 'fpm' else ''}: {tag}")
