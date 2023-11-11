@@ -4,6 +4,7 @@ FROM php:8.0.30-fpm
 # From the official WordPress image
 # https://github.com/docker-library/wordpress
 ################################################################################
+# The official WordPress Dockerfile START
 # persistent dependencies
 RUN set -eux; \
 	apt-get update; \
@@ -98,7 +99,7 @@ RUN { \
 		echo 'ignore_repeated_source = Off'; \
 		echo 'html_errors = Off'; \
 	} > /usr/local/etc/php/conf.d/error-logging.ini
-
+# The official WordPress Dockerfile END
 ################################################################################
 
 # Change www-data user's UID and GID to 101 to match nginx user's UID and GID in the official nginx image.
