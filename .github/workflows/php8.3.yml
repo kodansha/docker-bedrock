@@ -30,26 +30,28 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.CR_PAT }}
 
-      - name: Build and push PHP 8.2 image
+      - name: Build and push PHP 8.3 image
         uses: docker/build-push-action@v3
         with:
-          context: ./php8.2
+          context: ./php8.3
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            kodansha/bedrock:php8.2
-            kodansha/bedrock:php8.2.12
-            ghcr.io/kodansha/bedrock:php8.2
-            ghcr.io/kodansha/bedrock:php8.2.12
+            kodansha/bedrock:latest
+            kodansha/bedrock:php8.3
+            kodansha/bedrock:php8.3.0
+            ghcr.io/kodansha/bedrock:latest
+            ghcr.io/kodansha/bedrock:php8.3
+            ghcr.io/kodansha/bedrock:php8.3.0
 
-      - name: Build and push PHP 8.2 (PHP-FPM) image
+      - name: Build and push PHP 8.3 (PHP-FPM) image
         uses: docker/build-push-action@v3
         with:
-          context: ./php8.2-fpm
+          context: ./php8.3-fpm
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            kodansha/bedrock:php8.2-fpm
-            kodansha/bedrock:php8.2.12-fpm
-            ghcr.io/kodansha/bedrock:php8.2-fpm
-            ghcr.io/kodansha/bedrock:php8.2.12-fpm
+            kodansha/bedrock:php8.3-fpm
+            kodansha/bedrock:php8.3.0-fpm
+            ghcr.io/kodansha/bedrock:php8.3-fpm
+            ghcr.io/kodansha/bedrock:php8.3.0-fpm

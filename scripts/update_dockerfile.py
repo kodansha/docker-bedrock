@@ -3,6 +3,16 @@ import os
 
 # 設定辞書
 configurations = {
+    "8.3": {
+        "download_url": "https://raw.githubusercontent.com/docker-library/wordpress/master/latest/php8.3/apache/Dockerfile",
+        "end_phrase": "find /etc/apache2 -type f -name '*.conf' -exec sed -ri 's/([[:space:]]*LogFormat[[:space:]]+\"[^\"]*)%h([^\"]*\")/\\1%a\\2/g' '{}' +",
+        "dockerfile_path": "../php8.3/Dockerfile"
+    },
+    "8.3-fpm": {
+        "download_url": "https://raw.githubusercontent.com/docker-library/wordpress/master/latest/php8.3/fpm/Dockerfile",
+        "end_phrase": "} > /usr/local/etc/php/conf.d/error-logging.ini",
+        "dockerfile_path": "../php8.3-fpm/Dockerfile"
+    },
     "8.2": {
         "download_url": "https://raw.githubusercontent.com/docker-library/wordpress/master/latest/php8.2/apache/Dockerfile",
         "end_phrase": "find /etc/apache2 -type f -name '*.conf' -exec sed -ri 's/([[:space:]]*LogFormat[[:space:]]+\"[^\"]*)%h([^\"]*\")/\\1%a\\2/g' '{}' +",
