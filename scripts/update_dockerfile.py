@@ -32,16 +32,6 @@ configurations = {
         "download_url": "https://raw.githubusercontent.com/docker-library/wordpress/master/latest/php8.1/fpm/Dockerfile",
         "end_phrase": "} > /usr/local/etc/php/conf.d/error-logging.ini",
         "dockerfile_path": "../php8.1-fpm/Dockerfile"
-    },
-    "8.0": {
-        "download_url": "https://raw.githubusercontent.com/docker-library/wordpress/master/latest/php8.0/apache/Dockerfile",
-        "end_phrase": "find /etc/apache2 -type f -name '*.conf' -exec sed -ri 's/([[:space:]]*LogFormat[[:space:]]+\"[^\"]*)%h([^\"]*\")/\\1%a\\2/g' '{}' +",
-        "dockerfile_path": "../php8.0/Dockerfile"
-    },
-    "8.0-fpm": {
-        "download_url": "https://raw.githubusercontent.com/docker-library/wordpress/master/latest/php8.0/fpm/Dockerfile",
-        "end_phrase": "} > /usr/local/etc/php/conf.d/error-logging.ini",
-        "dockerfile_path": "../php8.0-fpm/Dockerfile"
     }
 }
 
