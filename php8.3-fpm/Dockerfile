@@ -1,4 +1,4 @@
-FROM php:8.3.0-fpm
+FROM php:8.3.1-fpm
 
 ################################################################################
 # From the official WordPress image
@@ -43,10 +43,11 @@ RUN set -ex; \
 		mysqli \
 		zip \
 	; \
-# https://pecl.php.net/package/imagick
-	pecl install imagick-3.6.0; \
-	docker-php-ext-enable imagick; \
-	rm -r /tmp/pear; \
+# https://github.com/Imagick/imagick/pull/641
+# # https://pecl.php.net/package/imagick
+# 	pecl install imagick-3.6.0; \
+# 	docker-php-ext-enable imagick; \
+ 	rm -r /tmp/pear; \
 	\
 # some misbehaving extensions end up outputting to stdout 🙈 (https://github.com/docker-library/wordpress/issues/669#issuecomment-993945967)
 	out="$(php -r 'exit(0);')"; \
