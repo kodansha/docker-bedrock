@@ -5,7 +5,7 @@ import time
 def get_latest_php_tags():
     base_url = "https://registry.hub.docker.com/v2/repositories/library/php/tags/"
     latest_versions = {}
-    max_pages = 10  # 最大ページ数を10に設定
+    max_pages = 30  # 最大ページ数を30に設定
 
     def process_page(url):
         response = requests.get(url)
@@ -32,7 +32,10 @@ def get_latest_php_tags():
     while next_page_url and page_count < max_pages:
         next_page_url = process_page(next_page_url)
         page_count += 1
-        time.sleep(3)  # APIリクエスト間に3秒の間隔を設ける
+        time.sleep(2)  # APIリクエスト間に3秒の間隔を設ける
+        print('.', end='', flush=True)
+
+    print('')
 
     return {k: v[0] for k, v in latest_versions.items()}
 
