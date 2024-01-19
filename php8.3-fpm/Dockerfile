@@ -47,7 +47,7 @@ RUN set -ex; \
 # # https://pecl.php.net/package/imagick
 # 	pecl install imagick-3.6.0; \
 # 	docker-php-ext-enable imagick; \
- 	rm -r /tmp/pear; \
+# 	rm -r /tmp/pear; \
 	\
 # some misbehaving extensions end up outputting to stdout 🙈 (https://github.com/docker-library/wordpress/issues/669#issuecomment-993945967)
 	out="$(php -r 'exit(0);')"; \
