@@ -126,7 +126,7 @@ RUN apt-get update \
 	&& rm --recursive --force /var/lib/apt/lists/*
 
 # Install PHP extra extension
-RUN pecl install redis-5.3.7 \
+RUN pecl install redis-6.0.2 \
 	&& docker-php-ext-enable redis \
 	&& rm -r /tmp/pear
 
