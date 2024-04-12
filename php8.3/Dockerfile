@@ -69,7 +69,7 @@ RUN set -ex; \
 	apt-mark auto '.*' > /dev/null; \
 	apt-mark manual $savedAptMark; \
 	ldd "$extDir"/*.so \
-		| awk '/=>/ { so = $(NF-1); if (index(so, "/usr/local/") == 1) { next }; gsub("^/(usr/)?", "", so); print so }' \
+		| awk '/=>/ { so = $(NF-1); if (index(so, "/usr/local/") == 1) { next }; gsub("^/(usr/)?", "", so); printf "*%s\n", so }' \
 		| sort -u \
 		| xargs -r dpkg-query --search \
 		| cut -d: -f1 \
@@ -139,7 +139,7 @@ RUN apt-get update \
 	&& rm --recursive --force /var/lib/apt/lists/*
 
 # Install PHP extra extension
-RUN pecl install redis-5.3.7 \
+RUN pecl install redis-6.0.2 \
 	&& docker-php-ext-enable redis \
 	&& rm -r /tmp/pear
 
@@ -167,3 +167,7 @@ ENV APACHE_DOCUMENT_ROOT ${WEB_ROOT}/web
 # Replace webroot strings in Apache config files
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
 RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
+
+# To run composer as root without any interaction
+ENV COMPOSER_ALLOW_SUPERUSER 1
+ENV COMPOSER_NO_INTERACTION 1
