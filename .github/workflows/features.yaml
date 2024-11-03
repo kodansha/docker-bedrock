@@ -19,5 +19,6 @@ jobs:
           publish-features: "true"
           base-path-to-features: "./features/src"
           generate-docs: "false"
+          disable-repo-tagging: "false"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
