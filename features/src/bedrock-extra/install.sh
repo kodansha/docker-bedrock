@@ -7,6 +7,12 @@ OPTIONS_XDEBUG="${XDEBUG:-"false"}"
 OPTIONS_XDEBUG_CLIENT_HOST="${XDEBUG_CLIENT_HOST:-"localhost"}"
 OPTIONS_XDEBUG_CLIENT_PORT="${XDEBUG_CLIENT_PORT:-"9003"}"
 
+# Install packages
+apt-get update && apt-get install -y \
+    locales \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
 # Locale configuration
 if [ "$OPTIONS_LOCALE" != "none" ]; then
     sed -i -E "s/# (${OPTIONS_LOCALE})/\1/" /etc/locale.gen
