@@ -1,0 +1,13 @@
+{
+    "id": "bedrock-extra",
+    "version": "0.1.0",
+    "name": "Bedrock (Modern WordPress Boilerplate) Extra Features",
+    "documentationURL": "https://github.com/kodansha/docker-bedrock/main/features/src/bedrock-extra",
+    "description": "This feature enhances the developer experience by adding some additional tools and configurations to the Bedrock devcontainer.",
+    "installsAfter": [
+        "ghcr.io/devcontainers/features/common-utils"
+    ],
+    "containerEnv": {
+        "WP_CLI_ALLOW_ROOT": "1"
+    }
+}

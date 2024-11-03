@@ -1,0 +1,8 @@
+{
+    "test": {
+        "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+        "features": {
+            "ghcr.io/kodansha/docker-bedrock/bedrock-extra:0": {}
+        }
+    }
+}
