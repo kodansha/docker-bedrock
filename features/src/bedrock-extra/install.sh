@@ -4,6 +4,7 @@ set -e
 
 OPTIONS_LOCALE="${LOCALE:-"none"}"
 OPTIONS_XDEBUG="${XDEBUG:-"false"}"
+OPTIONS_XDEBUG_VERSION="${XDEBUG_VERSION:-"latest"}"
 OPTIONS_XDEBUG_CLIENT_HOST="${XDEBUG_CLIENT_HOST:-"localhost"}"
 OPTIONS_XDEBUG_CLIENT_PORT="${XDEBUG_CLIENT_PORT:-"9003"}"
 
@@ -21,7 +22,12 @@ fi
 
 # Xdebug installation
 if [ "$OPTIONS_XDEBUG" != "false" ]; then
-    pecl install xdebug
+    if [ "$OPTIONS_XDEBUG_VERSION" != "latest" ]; then
+        pecl install xdebug-${OPTIONS_XDEBUG_VERSION}
+    else
+        pecl install xdebug
+    fi
+
     docker-php-ext-enable xdebug
 
     cat <<EOL | tee /usr/local/etc/php/conf.d/xdebug.ini
