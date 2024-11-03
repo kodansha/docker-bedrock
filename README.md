@@ -7,54 +7,11 @@ This is a configured PHP Docker image as a base environment for
 
 https://github.com/orgs/kodansha/packages/container/package/bedrock
 
-## Typical Usage Example
+## Dev Container Features
 
-### Apache
+The Docker Image for Bedrock is designed to be used in both production and
+development environments. However, in development, there may be situations where
+additional customization is needed, such as installing Xdebug.
 
-```dockerfile
-FROM ghcr.io/kodansha/bedrock:php8.0 AS base
-
-ENV WEB_ROOT /var/www/html
-ENV APACHE_DOCUMENT_ROOT ${WEB_ROOT}/web
-ENV COMPOSER_ALLOW_SUPERUSER 1
-
-# PHP file upload configuration
-RUN { \
-  echo 'memory_limit = 256M'; \
-  echo 'post_max_size = 128M'; \
-  echo 'upload_max_filesize = 64M'; \
-  echo 'max_execution_time = 300'; \
-  echo 'max_input_time = 1000'; \
-  } > /usr/local/etc/php/conf.d/custom-upload.ini
-
-################################################################################
-FROM base AS production
-
-WORKDIR ${WEB_ROOT}
-
-# Install PHP package dependencies
-COPY --chown=www-data:www-data composer.json composer.lock ${WEB_ROOT}/
-RUN composer install
-
-COPY --chown=www-data:www-data . ${WEB_ROOT}
-
-################################################################################
-FROM base AS development
-
-# Install and enable Xdebug
-RUN pecl install xdebug \
-  && docker-php-ext-enable xdebug
-RUN { \
-  echo '[xdebug]'; \
-  echo 'xdebug.mode=debug'; \
-  echo 'xdebug.start_with_request=yes'; \
-  echo 'xdebug.client_host=host.docker.internal'; \
-  echo 'xdebug.client_port=9003'; \
-  } > /usr/local/etc/php/conf.d/custom-xdebug.ini
-
-COPY --from=production --chown=www-data:www-data ${WEB_ROOT}/ ${WEB_ROOT}/
-```
-
-### PHP-FPM + Nginx
-
-WIP
+To address this, we provide typical development configurations as a Dev Container
+Feature. For more details, please refer to https://github.com/kodansha/docker-bedrock/tree/main/features/src/bedrock-extra.

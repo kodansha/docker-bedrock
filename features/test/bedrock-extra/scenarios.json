@@ -1,8 +1,44 @@
 {
-    "test": {
-        "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+    "test-locale-is-not-set": {
+        "image": "ghcr.io/kodansha/bedrock:php8.3-fpm",
         "features": {
-            "ghcr.io/kodansha/docker-bedrock/bedrock-extra:0": {}
+            "ghcr.io/kodansha/docker-bedrock/bedrock-extra:latest": {}
+        }
+    },
+    "test-locale-is-set": {
+        "image": "ghcr.io/kodansha/bedrock:php8.3-fpm",
+        "features": {
+            "ghcr.io/kodansha/docker-bedrock/bedrock-extra:latest": {
+                "locale": "ja_JP.UTF-8"
+            }
+        },
+        "containerEnv": {
+            "LANG": "ja_JP.UTF-8"
+        }
+    },
+    "test-xdebug-is-not-set": {
+        "image": "ghcr.io/kodansha/bedrock:php8.3-fpm",
+        "features": {
+            "ghcr.io/kodansha/docker-bedrock/bedrock-extra:latest": {}
+        }
+    },
+    "test-xdebug-is-set": {
+        "image": "ghcr.io/kodansha/bedrock:php8.3-fpm",
+        "features": {
+            "ghcr.io/kodansha/docker-bedrock/bedrock-extra:latest": {
+                "xdebug": true
+            }
+        }
+    },
+    "test-xdebug-custom-config": {
+        "image": "ghcr.io/kodansha/bedrock:php8.3-fpm",
+        "features": {
+            "ghcr.io/kodansha/docker-bedrock/bedrock-extra:latest": {
+                "xdebug": true,
+                "xdebugVersion": "3.3.0",
+                "xdebugClientHost": "host.docker.internal",
+                "xdebugClientPort": "9999"
+            }
         }
     }
 }
