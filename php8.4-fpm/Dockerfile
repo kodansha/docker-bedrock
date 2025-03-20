@@ -119,11 +119,6 @@ RUN apt-get update \
 	&& apt-get clean \
 	&& rm --recursive --force /var/lib/apt/lists/*
 
-# Install PHP extra extension
-RUN pecl install redis-6.0.2 \
-	&& docker-php-ext-enable redis \
-	&& rm -r /tmp/pear
-
 # PHP custom configuration
 RUN { \
 	echo 'zend.exception_ignore_args = On'; \
