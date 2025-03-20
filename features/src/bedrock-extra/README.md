@@ -6,7 +6,7 @@ This feature enhances the developer experience by adding some additional tools a
 ## Main Features
 
 - Install and configure locale package
-- Install and configure [Xdebug](https://xdebug.org)
+- Install and configure [Xdebug](https://xdebug.org) and [PhpRedis](https://github.com/phpredis/phpredis) extensions
 - Set the environment variable `WP_CLI_ALLOW_ROOT` to `1` to avoid spamming `--allow-root` every time you run WP CLI commands
 
 ## Options
