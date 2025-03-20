@@ -7,6 +7,8 @@ OPTIONS_XDEBUG="${XDEBUG:-"false"}"
 OPTIONS_XDEBUG_VERSION="${XDEBUGVERSION:-"latest"}"
 OPTIONS_XDEBUG_CLIENT_HOST="${XDEBUGCLIENTHOST:-"localhost"}"
 OPTIONS_XDEBUG_CLIENT_PORT="${XDEBUGCLIENTPORT:-"9003"}"
+OPTIONS_REDIS="${REDIS:-"false"}"
+OPTIONS_REDIS_VERSION="${REDISVERSION:-"latest"}"
 
 # Install packages
 apt-get update && apt-get install -y \
@@ -21,7 +23,7 @@ if [ "$OPTIONS_LOCALE" != "none" ]; then
 fi
 
 # Xdebug installation
-if [ "$OPTIONS_XDEBUG" != "false" ]; then
+if [ "$OPTIONS_XDEBUG" = "true" ]; then
     if [ "$OPTIONS_XDEBUG_VERSION" != "latest" ]; then
         pecl install xdebug-${OPTIONS_XDEBUG_VERSION}
     else
@@ -37,4 +39,15 @@ xdebug.start_with_request=yes
 xdebug.client_host=${OPTIONS_XDEBUG_CLIENT_HOST}
 xdebug.client_port=${OPTIONS_XDEBUG_CLIENT_PORT}
 EOL
+fi
+
+# Redis installation
+if [ "$OPTIONS_REDIS" = "true" ]; then
+    if [ "$OPTIONS_REDIS_VERSION" != "latest" ]; then
+        pecl install redis-${OPTIONS_REDIS_VERSION}
+    else
+        pecl install redis
+    fi
+
+    docker-php-ext-enable redis
 fi

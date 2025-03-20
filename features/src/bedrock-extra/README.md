@@ -15,9 +15,11 @@ This feature enhances the developer experience by adding some additional tools a
 |-----|-----|-----|-----|-----|
 | locale | Install and configure the specified locale | string | none | ja_JP.UTF-8 |
 | xdebug | Whether to install Xdebug | boolean | false | true |
-| xdebugVersion | Xdebug version to install (effective only if `xdebug` is true) | string | latest | 3.3.0 |
+| xdebugVersion | Xdebug version to install (effective only if `xdebug` is true) | string | latest | 3.4.2 |
 | xdebugClientHost | Xdebug client host (effective only if `xdebug` is true) | string | localhost | host.docker.internal |
 | xdebugClientPort | Xdebug client port (effective only if `xdebug` is true) | string | 9003 | 9000 |
+| redis | Whether to install Redis | boolean | false | true |
+| redisVersion | Redis version to install (effective only if `redis` is true) | string | latest | 6.1.0 |
 
 ## Example Usage
 
@@ -25,14 +27,16 @@ This feature enhances the developer experience by adding some additional tools a
 {
     // ... other devcontainer.json settings
 
-    "image": "ghcr.io/kodansha/bedrock:php8.3-fpm",
+    "image": "ghcr.io/kodansha/bedrock:php8.4-fpm",
     "features": {
         "ghcr.io/kodansha/docker-bedrock/bedrock-extra:1": {
             "locale": "ja_JP.UTF-8",
             "xdebug": true,
-            "xdebugVersion": "3.3.0",
+            "xdebugVersion": "3.4.2",
             "xdebugClientHost": "host.docker.internal",
-            "xdebugClientPort": "9000"
+            "xdebugClientPort": "9000",
+            "redis": true,
+            "redisVersion": "6.1.0"
         }
     },
     "containerEnv": {
