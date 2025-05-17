@@ -1,4 +1,4 @@
-FROM php:8.4.6-apache
+FROM php:8.4.7-apache
 
 ################################################################################
 # From the official WordPress image
@@ -149,13 +149,13 @@ RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli
 	&& mv wp-cli.phar /usr/local/bin/wp \
 	&& wp --info
 
-ENV WEB_ROOT /var/www/html
-ENV APACHE_DOCUMENT_ROOT ${WEB_ROOT}/web
+ENV WEB_ROOT=/var/www/html
+ENV APACHE_DOCUMENT_ROOT=${WEB_ROOT}/web
 
 # Replace webroot strings in Apache config files
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
 RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
 
 # To run composer as root without any interaction
-ENV COMPOSER_ALLOW_SUPERUSER 1
-ENV COMPOSER_NO_INTERACTION 1
+ENV COMPOSER_ALLOW_SUPERUSER=1
+ENV COMPOSER_NO_INTERACTION=1
