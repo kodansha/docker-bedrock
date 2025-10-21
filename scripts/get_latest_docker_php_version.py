@@ -5,7 +5,7 @@ import time
 def get_latest_php_tags():
     base_url = "https://registry.hub.docker.com/v2/repositories/library/php/tags/"
     latest_versions = {}
-    max_pages = 30  # 最大ページ数を30に設定
+    max_pages = 60  # 最大ページ数を60に設定
 
     def process_page(url):
         response = requests.get(url)
