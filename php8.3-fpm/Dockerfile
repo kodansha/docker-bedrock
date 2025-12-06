@@ -1,4 +1,4 @@
-FROM php:8.3.27-fpm
+FROM php:8.3.28-fpm
 
 ################################################################################
 # From the official WordPress image
@@ -46,7 +46,7 @@ RUN set -ex; \
 		zip \
 	; \
 # https://pecl.php.net/package/imagick
-	pecl install imagick-3.8.0; \
+	pecl install imagick-3.8.1; \
 	docker-php-ext-enable imagick; \
 	rm -r /tmp/pear; \
 	\
@@ -79,16 +79,17 @@ RUN set -ex; \
 
 # set recommended PHP.ini settings
 # see https://secure.php.net/manual/en/opcache.installation.php
+# enabled by default in the php images: https://github.com/docker-library/php/pull/1587
 RUN set -eux; \
-	docker-php-ext-enable opcache; \
 	{ \
 		echo 'opcache.memory_consumption=128'; \
 		echo 'opcache.interned_strings_buffer=8'; \
 		echo 'opcache.max_accelerated_files=4000'; \
 		echo 'opcache.revalidate_freq=2'; \
-	} > /usr/local/etc/php/conf.d/opcache-recommended.ini
+	} > "$PHP_INI_DIR/conf.d/opcache-recommended.ini"
 # https://wordpress.org/support/article/editing-wp-config-php/#configure-error-logging
-RUN { \
+RUN set -eux; \
+	{ \
 # https://www.php.net/manual/en/errorfunc.constants.php
 # https://github.com/docker-library/wordpress/issues/420#issuecomment-517839670
 		echo 'error_reporting = E_ERROR | E_WARNING | E_PARSE | E_CORE_ERROR | E_CORE_WARNING | E_COMPILE_ERROR | E_COMPILE_WARNING | E_RECOVERABLE_ERROR'; \
@@ -100,7 +101,7 @@ RUN { \
 		echo 'ignore_repeated_errors = On'; \
 		echo 'ignore_repeated_source = Off'; \
 		echo 'html_errors = Off'; \
-	} > /usr/local/etc/php/conf.d/error-logging.ini
+	} > "$PHP_INI_DIR/conf.d/error-logging.ini"
 # The official WordPress Dockerfile END
 ################################################################################
 

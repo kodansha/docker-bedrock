@@ -1,4 +1,4 @@
-FROM php:8.4.15-apache
+FROM php:8.5.0-fpm
 
 ################################################################################
 # From the official WordPress image
@@ -102,27 +102,14 @@ RUN set -eux; \
 		echo 'ignore_repeated_source = Off'; \
 		echo 'html_errors = Off'; \
 	} > "$PHP_INI_DIR/conf.d/error-logging.ini"
-
-RUN set -eux; \
-	a2enmod rewrite expires; \
-	\
-# https://httpd.apache.org/docs/2.4/mod/mod_remoteip.html
-	a2enmod remoteip; \
-	{ \
-		echo 'RemoteIPHeader X-Forwarded-For'; \
-# these IP ranges are reserved for "private" use and should thus *usually* be safe inside Docker
-		echo 'RemoteIPInternalProxy 10.0.0.0/8'; \
-		echo 'RemoteIPInternalProxy 172.16.0.0/12'; \
-		echo 'RemoteIPInternalProxy 192.168.0.0/16'; \
-		echo 'RemoteIPInternalProxy 169.254.0.0/16'; \
-		echo 'RemoteIPInternalProxy 127.0.0.0/8'; \
-	} > /etc/apache2/conf-available/remoteip.conf; \
-	a2enconf remoteip; \
-# https://github.com/docker-library/wordpress/issues/383#issuecomment-507886512
-# (replace all instances of "%h" with "%a" in LogFormat)
-	find /etc/apache2 -type f -name '*.conf' -exec sed -ri 's/([[:space:]]*LogFormat[[:space:]]+"[^"]*)%h([^"]*")/\1%a\2/g' '{}' +
 # The official WordPress Dockerfile END
 ################################################################################
+
+# Change www-data user's UID and GID to 101 to match nginx user's UID and GID in the official nginx image.
+# https://hub.docker.com/_/nginx
+# https://stackoverflow.com/questions/36824222/how-to-change-the-nginx-process-user-of-the-official-docker-image-nginx
+RUN usermod -u 101 -o www-data \
+	&& groupmod -g 101 -o www-data
 
 # Install extra package dependencies
 RUN apt-get update \
@@ -149,13 +136,6 @@ RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli
 	&& chmod +x wp-cli.phar \
 	&& mv wp-cli.phar /usr/local/bin/wp \
 	&& wp --info
-
-ENV WEB_ROOT=/var/www/html
-ENV APACHE_DOCUMENT_ROOT=${WEB_ROOT}/web
-
-# Replace webroot strings in Apache config files
-RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
-RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
 
 # To run composer as root without any interaction
 ENV COMPOSER_ALLOW_SUPERUSER=1
