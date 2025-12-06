@@ -119,6 +119,9 @@ RUN apt-get update \
 	&& apt-get clean \
 	&& rm --recursive --force /var/lib/apt/lists/*
 
+# Copy the pie.phar from the latest `:bin` release
+COPY --from=ghcr.io/php/pie:bin /pie /usr/bin/pie
+
 # PHP custom configuration
 RUN { \
 	echo 'zend.exception_ignore_args = On'; \
