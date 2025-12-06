@@ -1,4 +1,4 @@
-name: PHP 8.3
+name: PHP 8.5
 
 on:
   workflow_dispatch:
@@ -30,28 +30,28 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.CR_PAT }}
 
-      - name: Build and push PHP 8.3 image
+      - name: Build and push PHP 8.5 image
         uses: docker/build-push-action@v3
         with:
-          context: ./php8.3
+          context: ./php8.5
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
             kodansha/bedrock:latest
-            kodansha/bedrock:php8.3
-            kodansha/bedrock:php8.3.28
+            kodansha/bedrock:php8.5
+            kodansha/bedrock:php8.5.0
             ghcr.io/kodansha/bedrock:latest
-            ghcr.io/kodansha/bedrock:php8.3
-            ghcr.io/kodansha/bedrock:php8.3.28
+            ghcr.io/kodansha/bedrock:php8.5
+            ghcr.io/kodansha/bedrock:php8.5.0
 
-      - name: Build and push PHP 8.3 (PHP-FPM) image
+      - name: Build and push PHP 8.5 (PHP-FPM) image
         uses: docker/build-push-action@v3
         with:
-          context: ./php8.3-fpm
+          context: ./php8.5-fpm
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            kodansha/bedrock:php8.3-fpm
-            kodansha/bedrock:php8.3.28-fpm
-            ghcr.io/kodansha/bedrock:php8.3-fpm
-            ghcr.io/kodansha/bedrock:php8.3.28-fpm
+            kodansha/bedrock:php8.5-fpm
+            kodansha/bedrock:php8.5.0-fpm
+            ghcr.io/kodansha/bedrock:php8.5-fpm
+            ghcr.io/kodansha/bedrock:php8.5.0-fpm
