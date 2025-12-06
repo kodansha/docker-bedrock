@@ -40,7 +40,6 @@ jobs:
             kodansha/bedrock:latest
             kodansha/bedrock:php8.4
             kodansha/bedrock:php8.4.15
-            ghcr.io/kodansha/bedrock:latest
             ghcr.io/kodansha/bedrock:php8.4
             ghcr.io/kodansha/bedrock:php8.4.15
 
