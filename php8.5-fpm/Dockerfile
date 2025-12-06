@@ -122,23 +122,17 @@ RUN apt-get update \
 # Copy the pie.phar from the latest `:bin` release
 COPY --from=ghcr.io/php/pie:bin /pie /usr/bin/pie
 
+# Copy the composer executable from the latest composer image
+COPY --from=composer /usr/bin/composer /usr/bin/composer
+
+# Copy the WP-CLI executable from the latest wordpress:cli image
+COPY --from=wordpress:cli /usr/local/bin/wp /usr/local/bin/wp
+
 # PHP custom configuration
 RUN { \
 	echo 'zend.exception_ignore_args = On'; \
 	echo 'expose_php = Off'; \
 	} > /usr/local/etc/php/conf.d/custom.ini
-
-# Install Composer
-RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" \
-	&& php composer-setup.php --install-dir=/usr/local/bin --filename=composer \
-	&& php -r "unlink('composer-setup.php');" \
-	&& composer --version
-
-# Install WP-CLI
-RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar \
-	&& chmod +x wp-cli.phar \
-	&& mv wp-cli.phar /usr/local/bin/wp \
-	&& wp --info
 
 # To run composer as root without any interaction
 ENV COMPOSER_ALLOW_SUPERUSER=1
