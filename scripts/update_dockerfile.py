@@ -3,6 +3,16 @@ import os
 
 # 設定辞書
 configurations = {
+    "8.5": {
+        "download_url": "https://raw.githubusercontent.com/docker-library/wordpress/master/latest/php8.5/apache/Dockerfile",
+        "end_phrase": "find /etc/apache2 -type f -name '*.conf' -exec sed -ri 's/([[:space:]]*LogFormat[[:space:]]+\"[^\"]*)%h([^\"]*\")/\\1%a\\2/g' '{}' +",
+        "dockerfile_path": "../php8.5/Dockerfile"
+    },
+    "8.5-fpm": {
+        "download_url": "https://raw.githubusercontent.com/docker-library/wordpress/master/latest/php8.5/fpm/Dockerfile",
+        "end_phrase": "} > /usr/local/etc/php/conf.d/error-logging.ini",
+        "dockerfile_path": "../php8.5-fpm/Dockerfile"
+    },
     "8.4": {
         "download_url": "https://raw.githubusercontent.com/docker-library/wordpress/master/latest/php8.4/apache/Dockerfile",
         "end_phrase": "find /etc/apache2 -type f -name '*.conf' -exec sed -ri 's/([[:space:]]*LogFormat[[:space:]]+\"[^\"]*)%h([^\"]*\")/\\1%a\\2/g' '{}' +",
@@ -32,16 +42,6 @@ configurations = {
         "download_url": "https://raw.githubusercontent.com/docker-library/wordpress/master/latest/php8.2/fpm/Dockerfile",
         "end_phrase": "} > /usr/local/etc/php/conf.d/error-logging.ini",
         "dockerfile_path": "../php8.2-fpm/Dockerfile"
-    },
-    "8.1": {
-        "download_url": "https://raw.githubusercontent.com/docker-library/wordpress/master/latest/php8.1/apache/Dockerfile",
-        "end_phrase": "find /etc/apache2 -type f -name '*.conf' -exec sed -ri 's/([[:space:]]*LogFormat[[:space:]]+\"[^\"]*)%h([^\"]*\")/\\1%a\\2/g' '{}' +",
-        "dockerfile_path": "../php8.1/Dockerfile"
-    },
-    "8.1-fpm": {
-        "download_url": "https://raw.githubusercontent.com/docker-library/wordpress/master/latest/php8.1/fpm/Dockerfile",
-        "end_phrase": "} > /usr/local/etc/php/conf.d/error-logging.ini",
-        "dockerfile_path": "../php8.1-fpm/Dockerfile"
     }
 }
 
