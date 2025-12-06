@@ -37,7 +37,6 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            kodansha/bedrock:latest
             kodansha/bedrock:php8.4
             kodansha/bedrock:php8.4.15
             ghcr.io/kodansha/bedrock:php8.4
