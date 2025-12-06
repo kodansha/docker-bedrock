@@ -1,14 +1,14 @@
 {
     "test-locale-is-not-set": {
-        "image": "ghcr.io/kodansha/bedrock:php8.4-fpm",
+        "image": "ghcr.io/kodansha/bedrock:php8.5-fpm",
         "features": {
-            "ghcr.io/kodansha/docker-bedrock/bedrock-extra:latest": {}
+            "bedrock-extra": {}
         }
     },
     "test-locale-is-set": {
-        "image": "ghcr.io/kodansha/bedrock:php8.4-fpm",
+        "image": "ghcr.io/kodansha/bedrock:php8.5-fpm",
         "features": {
-            "ghcr.io/kodansha/docker-bedrock/bedrock-extra:latest": {
+            "bedrock-extra": {
                 "locale": "ja_JP.UTF-8"
             }
         },
@@ -17,23 +17,71 @@
         }
     },
     "test-xdebug-is-not-set": {
-        "image": "ghcr.io/kodansha/bedrock:php8.4-fpm",
+        "image": "ghcr.io/kodansha/bedrock:php8.5-fpm",
         "features": {
-            "ghcr.io/kodansha/docker-bedrock/bedrock-extra:latest": {}
+            "bedrock-extra": {}
         }
     },
     "test-xdebug-is-set": {
-        "image": "ghcr.io/kodansha/bedrock:php8.4-fpm",
+        "image": "ghcr.io/kodansha/bedrock:php8.5-fpm",
         "features": {
-            "ghcr.io/kodansha/docker-bedrock/bedrock-extra:latest": {
+            "bedrock-extra": {
                 "xdebug": true
             }
         }
     },
     "test-xdebug-custom-config": {
+        "image": "ghcr.io/kodansha/bedrock:php8.5-fpm",
+        "features": {
+            "bedrock-extra": {
+                "xdebug": true,
+                "xdebugVersion": "3.5.0alpha3",
+                "xdebugClientHost": "host.docker.internal",
+                "xdebugClientPort": "9999"
+            }
+        }
+    },
+    "test-redis-is-not-set": {
+        "image": "ghcr.io/kodansha/bedrock:php8.5-fpm",
+        "features": {
+            "bedrock-extra": {}
+        }
+    },
+    "test-redis-is-set": {
+        "image": "ghcr.io/kodansha/bedrock:php8.5-fpm",
+        "features": {
+            "bedrock-extra": {
+                "redis": true
+            }
+        }
+    },
+    "test-redis-custom-config": {
+        "image": "ghcr.io/kodansha/bedrock:php8.5-fpm",
+        "features": {
+            "bedrock-extra": {
+                "redis": true,
+                "redisVersion": "6.3.0RC1"
+            }
+        }
+    },
+    "test-xdebug-is-not-set-php84": {
         "image": "ghcr.io/kodansha/bedrock:php8.4-fpm",
         "features": {
-            "ghcr.io/kodansha/docker-bedrock/bedrock-extra:latest": {
+            "bedrock-extra": {}
+        }
+    },
+    "test-xdebug-is-set-php84": {
+        "image": "ghcr.io/kodansha/bedrock:php8.4-fpm",
+        "features": {
+            "bedrock-extra": {
+                "xdebug": true
+            }
+        }
+    },
+    "test-xdebug-custom-config-php84": {
+        "image": "ghcr.io/kodansha/bedrock:php8.4-fpm",
+        "features": {
+            "bedrock-extra": {
                 "xdebug": true,
                 "xdebugVersion": "3.4.0",
                 "xdebugClientHost": "host.docker.internal",
@@ -41,24 +89,24 @@
             }
         }
     },
-    "test-redis-is-not-set": {
+    "test-redis-is-not-set-php84": {
         "image": "ghcr.io/kodansha/bedrock:php8.4-fpm",
         "features": {
-            "ghcr.io/kodansha/docker-bedrock/bedrock-extra:latest": {}
+            "bedrock-extra": {}
         }
     },
-    "test-redis-is-set": {
+    "test-redis-is-set-php84": {
         "image": "ghcr.io/kodansha/bedrock:php8.4-fpm",
         "features": {
-            "ghcr.io/kodansha/docker-bedrock/bedrock-extra:latest": {
+            "bedrock-extra": {
                 "redis": true
             }
         }
     },
-    "test-redis-custom-config": {
+    "test-redis-custom-config-php84": {
         "image": "ghcr.io/kodansha/bedrock:php8.4-fpm",
         "features": {
-            "ghcr.io/kodansha/docker-bedrock/bedrock-extra:latest": {
+            "bedrock-extra": {
                 "redis": true,
                 "redisVersion": "6.1.0RC2"
             }

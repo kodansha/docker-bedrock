@@ -10,6 +10,33 @@ OPTIONS_XDEBUG_CLIENT_PORT="${XDEBUGCLIENTPORT:-"9003"}"
 OPTIONS_REDIS="${REDIS:-"false"}"
 OPTIONS_REDIS_VERSION="${REDISVERSION:-"latest"}"
 
+# Check if pie is available
+use_pie() {
+    command -v pie &> /dev/null
+}
+
+# Install PHP extension using pie or pecl
+install_php_extension() {
+    local extension_name=$1
+    local pecl_name=$2
+    local version=$3
+
+    if use_pie; then
+        if [ "$version" != "latest" ]; then
+            pie install "${extension_name}:${version}"
+        else
+            pie install "${extension_name}"
+        fi
+    else
+        if [ "$version" != "latest" ]; then
+            pecl install "${pecl_name}-${version}"
+        else
+            pecl install "${pecl_name}"
+        fi
+        docker-php-ext-enable "${pecl_name}"
+    fi
+}
+
 # Install packages
 apt-get update && apt-get install -y \
     locales \
@@ -24,13 +51,7 @@ fi
 
 # Xdebug installation
 if [ "$OPTIONS_XDEBUG" = "true" ]; then
-    if [ "$OPTIONS_XDEBUG_VERSION" != "latest" ]; then
-        pecl install xdebug-${OPTIONS_XDEBUG_VERSION}
-    else
-        pecl install xdebug
-    fi
-
-    docker-php-ext-enable xdebug
+    install_php_extension "xdebug/xdebug" "xdebug" "$OPTIONS_XDEBUG_VERSION"
 
     cat <<EOL | tee /usr/local/etc/php/conf.d/xdebug.ini
 [xdebug]
@@ -43,11 +64,5 @@ fi
 
 # Redis installation
 if [ "$OPTIONS_REDIS" = "true" ]; then
-    if [ "$OPTIONS_REDIS_VERSION" != "latest" ]; then
-        pecl install redis-${OPTIONS_REDIS_VERSION}
-    else
-        pecl install redis
-    fi
-
-    docker-php-ext-enable redis
+    install_php_extension "phpredis/phpredis" "redis" "$OPTIONS_REDIS_VERSION"
 fi
