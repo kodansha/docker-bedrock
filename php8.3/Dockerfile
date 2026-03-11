@@ -1,4 +1,4 @@
-FROM php:8.3.29-apache
+FROM php:8.3.30-apache
 
 ################################################################################
 # From the official WordPress image
@@ -11,6 +11,10 @@ RUN set -eux; \
 	apt-get install -y --no-install-recommends \
 # Ghostscript is required for rendering PDF previews
 		ghostscript \
+# pull in AV1 & HEVC image encoding (and not just decoding)
+# https://github.com/docker-library/wordpress/issues/996
+		libheif-plugin-aomenc \
+		libheif-plugin-x265 \
 	; \
 	rm -rf /var/lib/apt/lists/*
 
