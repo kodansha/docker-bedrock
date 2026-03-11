@@ -1,123 +1,123 @@
 ---
 name: update-bedrock-images
-description: Bedrock の Docker ベースイメージの PHP バージョンをアップデートするスキル。EOSL になっていない PHP バージョン (現在は 8.2, 8.3, 8.4, 8.5) のイメージを Docker Hub の最新バージョンに更新し、PR を作成する。
+description: A skill for updating PHP versions in Bedrock Docker base images. Updates images for non-EOSL PHP versions (currently 8.2, 8.3, 8.4, 8.5) to the latest versions on Docker Hub and creates a PR.
 ---
 
 # Update Bedrock Docker Images
 
-## 概要
+## Overview
 
-Bedrock の Docker ベースイメージを最新の PHP バージョンにアップデートする。
-対象は EOSL になっていない PHP バージョン (現在は 8.2, 8.3, 8.4, 8.5)。
+Update Bedrock Docker base images to the latest PHP versions.
+Targets non-EOSL PHP versions (currently 8.2, 8.3, 8.4, 8.5).
 
-## 前提条件
+## Prerequisites
 
-- このスキルは `docker-bedrock` リポジトリのルートディレクトリで実行すること
-- Python の仮想環境が `.venv/` に存在し、`requests` パッケージがインストール済みであること
-- GitHub CLI (`gh`) が使用可能であること
+- This skill must be run from the root directory of the `docker-bedrock` repository
+- A Python virtual environment must exist at `.venv/` with the `requests` package installed
+- GitHub CLI (`gh`) must be available
 
-## 手順
+## Steps
 
-以下の手順を順番に実行する。
+Execute the following steps in order.
 
-### 0. main ブランチを最新に更新
+### 0. Update the main branch to the latest
 
 ```bash
 git checkout main
 git pull origin main
 ```
 
-### 1. Docker Hub から最新の PHP バージョンを取得
+### 1. Fetch the latest PHP versions from Docker Hub
 
-`scripts/get_latest_docker_php_version.py` を実行して、Docker Hub で公開されている最新の PHP バージョンを取得する。
+Run `scripts/get_latest_docker_php_version.py` to fetch the latest PHP versions published on Docker Hub.
 
 ```bash
 .venv/bin/python scripts/get_latest_docker_php_version.py
 ```
 
-**注意: このスクリプトは Docker Hub API を複数ページにわたってフェッチするため、実行完了まで2分程度かかる。** タイムアウトに注意すること。
+**Note: This script fetches multiple pages from the Docker Hub API, so it takes about 2 minutes to complete.** Be mindful of timeouts.
 
-このスクリプトは以下を行う:
+This script does the following:
 
-- Docker Hub API から最新の PHP タグを取得
-- 各バージョンの Dockerfile と `.github/workflows/` 以下の YAML ファイルを自動更新
-- 更新結果のサマリーを出力
+- Fetches the latest PHP tags from the Docker Hub API
+- Automatically updates the Dockerfile and YAML files under `.github/workflows/` for each version
+- Outputs a summary of the updates
 
-### 2. 更新の確認
+### 2. Verify the updates
 
-スクリプトの出力を確認し、更新が発生したかどうかを判断する。
-「0 updated」の場合はすべて最新であり、ユーザーにその旨を伝えて終了する。
+Check the script output to determine whether any updates occurred.
+If the output shows "0 updated", everything is already up to date — inform the user and stop.
 
-### 3. トピックブランチの作成と変更内容の確認
+### 3. Create a topic branch and review the changes
 
-更新がある場合、main ブランチからトピックブランチを作成する。
+If there are updates, create a topic branch from main.
 
 ```bash
 git checkout -b update-YYYYMMDD
 ```
 
-ブランチ名の `YYYYMMDD` は当日の日付にする (例: `update-20260311`)。
+Replace `YYYYMMDD` in the branch name with today's date (e.g., `update-20260311`).
 
-手順1のスクリプトにより、以下のファイルが自動的に更新されている:
+The script from step 1 will have automatically updated the following files:
 
-- **`php8.X/Dockerfile`** - FROM 行の PHP バージョン (例: `FROM php:8.4.15` → `FROM php:8.4.16`)
-- **`php8.X-fpm/Dockerfile`** - FROM 行の PHP バージョン (例: `FROM php:8.4.15-fpm` → `FROM php:8.4.16-fpm`)
-- **`.github/workflows/php8.X.yml`** - Docker イメージタグのうち **Apache 版のみ** 自動更新される (例: `kodansha/bedrock:php8.4.15` → `kodansha/bedrock:php8.4.16`)
+- **`php8.X/Dockerfile`** - PHP version in the FROM line (e.g., `FROM php:8.4.15` → `FROM php:8.4.16`)
+- **`php8.X-fpm/Dockerfile`** - PHP version in the FROM line (e.g., `FROM php:8.4.15-fpm` → `FROM php:8.4.16-fpm`)
+- **`.github/workflows/php8.X.yml`** - Only the **Apache variant** image tags are automatically updated (e.g., `kodansha/bedrock:php8.4.15` → `kodansha/bedrock:php8.4.16`)
 
-**注意: スクリプトの正規表現の制約により、workflow YAML 内の FPM 版タグ (`php8.X.Y-fpm`) は自動更新されない。** `-fpm` サフィックス付きタグは手動で更新する必要がある:
+**Note: Due to regex limitations in the script, FPM variant tags (`php8.X.Y-fpm`) in the workflow YAML are NOT automatically updated.** Tags with the `-fpm` suffix must be updated manually:
 
-- `kodansha/bedrock:php8.X.Y-fpm` → 新しいバージョンに更新
-- `ghcr.io/kodansha/bedrock:php8.X.Y-fpm` → 新しいバージョンに更新
+- `kodansha/bedrock:php8.X.Y-fpm` → update to the new version
+- `ghcr.io/kodansha/bedrock:php8.X.Y-fpm` → update to the new version
 
-`git diff` で変更内容を確認し、以下の点をチェックすること:
+Use `git diff` to review the changes and verify the following:
 
-1. **すべての対象バージョン** (8.2, 8.3, 8.4, 8.5) の Dockerfile と workflow YAML が漏れなく更新されているか
-2. **workflow YAML 内の FPM タグ** を手動で正しいバージョンに更新したか (`kodansha/bedrock:` と `ghcr.io/kodansha/bedrock:` の両方)
+1. Dockerfiles and workflow YAMLs for **all target versions** (8.2, 8.3, 8.4, 8.5) have been updated without omission
+2. **FPM tags in workflow YAMLs** have been manually updated to the correct version (both `kodansha/bedrock:` and `ghcr.io/kodansha/bedrock:`)
 
-**重要: Dockerfile のフォーマットは絶対にしないこと。** 不要な差分が発生するため。
+**Important: Never reformat Dockerfiles.** This would introduce unnecessary diffs.
 
-### 4. WordPress 公式 Dockerfile の更新確認
+### 4. Check for WordPress official Dockerfile updates
 
-`scripts/update_dockerfile.py` を実行し、Docker 公式 WordPress イメージの更新がないかを確認する。
+Run `scripts/update_dockerfile.py` to check for any updates to the official Docker WordPress image.
 
-**注意: このスクリプトは相対パスで Dockerfile を参照するため、`scripts/` ディレクトリから実行する必要がある。**
+**Note: This script references Dockerfiles using relative paths, so it must be run from the `scripts/` directory.**
 
 ```bash
 cd scripts && ../.venv/bin/python update_dockerfile.py && cd ..
 ```
 
-このスクリプトは WordPress 公式 Dockerfile から `# persistent dependencies` から各種設定までの部分を抽出し、ローカルの Dockerfile の `# The official WordPress Dockerfile START` ~ `# The official WordPress Dockerfile END` の間に反映する。
+This script extracts the section from `# persistent dependencies` through the various settings in the official WordPress Dockerfile, and applies it to the local Dockerfile between `# The official WordPress Dockerfile START` and `# The official WordPress Dockerfile END`.
 
-更新があった場合、差分を確認する。**Dockerfile のフォーマットは絶対にしないこと。**
+If there are updates, review the diff. **Never reformat Dockerfiles.**
 
-### 5. コミット
+### 5. Commit
 
-変更されたファイルをすべてステージングしてコミットする。
-コミットメッセージには、更新された PHP バージョンをカンマ区切りで列挙する。
+Stage all changed files and commit.
+List the updated PHP versions in the commit message, separated by commas.
 
-例: `PHP 8.2.28, 8.3.22, 8.4.16, 8.5.0`
+Example: `PHP 8.2.28, 8.3.22, 8.4.16, 8.5.0`
 
-WordPress Dockerfile の更新もあった場合はコミットメッセージに追記する。
+If there are also WordPress Dockerfile updates, append that to the commit message.
 
-例: `PHP 8.3.22, 8.4.16 / WordPress Dockerfile 更新`
+Example: `PHP 8.3.22, 8.4.16 / WordPress Dockerfile updated`
 
-### 6. GitHub に push して PR を作成
+### 6. Push to GitHub and create a PR
 
 ```bash
 git push -u origin update-YYYYMMDD
 ```
 
-PR のタイトルはコミットメッセージと同じにし、本文には更新されたバージョンの詳細を記載する。
+Use the same text as the commit message for the PR title, and include details of the updated versions in the PR body.
 
-PR 作成後、**マージまで実行するかどうかをユーザーに尋ねること。**
+After creating the PR, **ask the user whether to proceed with merging.**
 
-### 7. マージ (ユーザーが選択した場合)
+### 7. Merge (if the user chooses to)
 
-ユーザーがマージを選択した場合:
+If the user chooses to merge:
 
-1. PR を main にマージする
-2. トピックブランチをリモートとローカルで削除する
-3. main ブランチに切り替え、pull して最新にする
+1. Merge the PR into main
+2. Delete the topic branch from both remote and local
+3. Switch to the main branch and pull to get the latest
 
 ```bash
 gh pr merge --merge
@@ -126,4 +126,4 @@ git pull origin main
 git branch -d update-YYYYMMDD
 ```
 
-ユーザーがマージを選択しなかった場合は、PR の URL を表示して終了する。
+If the user chooses not to merge, display the PR URL and stop.
