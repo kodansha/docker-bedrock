@@ -7,7 +7,7 @@ python.uv_venv_auto = "create|source"
 
 [tasks.update-php-versions]
 description = "Update PHP versions in Dockerfiles from Docker Hub"
-run = "uv run python scripts/get_latest_docker_php_version.py"
+run = "uv run python scripts/update_php_versions.py"
 
 [tasks.update-dockerfile]
 description = "Update Dockerfile contents from official WordPress Dockerfile"

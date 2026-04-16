@@ -29,7 +29,7 @@ git pull origin main
 
 ### 1. Fetch the latest PHP versions from Docker Hub
 
-Run `scripts/get_latest_docker_php_version.py` to fetch the latest PHP versions published on Docker Hub.
+Run `scripts/update_php_versions.py` to fetch the latest PHP versions published on Docker Hub.
 
 ```bash
 mise run update-php-versions
