@@ -4,7 +4,7 @@ from pathlib import Path
 
 project_root = Path(__file__).parent.parent
 
-# 設定辞書
+# Configuration dictionary
 configurations = {
     "8.5": {
         "download_url": "https://raw.githubusercontent.com/docker-library/wordpress/master/latest/php8.5/apache/Dockerfile",
@@ -48,15 +48,15 @@ configurations = {
     }
 }
 
-# 各バージョンの Dockerfile を処理
+# Process Dockerfile for each version
 for version, config in configurations.items():
-    print(f"バージョン {version} の処理を開始します。")
+    print(f"Processing version {version}.")
 
-    # ダウンロードしてテキストを取得
+    # Download and get text content
     response = requests.get(config["download_url"])
     lines = response.text.split('\n')
 
-    # 抽出する範囲を特定
+    # Identify the range to extract
     start_phrase = "# persistent dependencies"
     end_phrase = config["end_phrase"]
     start_index = end_index = None
@@ -68,27 +68,27 @@ for version, config in configurations.items():
             end_index = i
             break
 
-    # .temp.txt に必要な部分を保存
+    # Save the extracted section to .temp.txt
     temp_file = Path(__file__).parent / ".temp.txt"
     if start_index is not None and end_index is not None:
         with open(temp_file, 'w') as file:
             for line in lines[start_index:end_index + 1]:
                 file.write(line + '\n')
 
-        print(f"抽出が完了し、{temp_file} に保存されました。")
+        print(f"Extraction complete, saved to {temp_file}.")
 
-        # Dockerfile のパス
+        # Dockerfile path
         dockerfile_path = config["dockerfile_path"]
 
-        # 置き換える範囲の開始と終了のマーカー
+        # Start and end markers for the replacement range
         start_marker = "# The official WordPress Dockerfile START\n"
         end_marker = "# The official WordPress Dockerfile END\n"
 
-        # Dockerfile を読み込む
+        # Read the Dockerfile
         with open(dockerfile_path, 'r') as file:
             dockerfile_contents = file.readlines()
 
-        # 置き換える範囲を見つける
+        # Find the replacement range
         start_index = end_index = None
         for i, line in enumerate(dockerfile_contents):
             if line.strip() == start_marker.strip():
@@ -97,23 +97,23 @@ for version, config in configurations.items():
                 end_index = i
                 break
 
-        # 範囲を置き換える
+        # Replace the range
         if start_index is not None and end_index is not None:
             with open(temp_file, 'r') as file:
                 replacement_content = file.readlines()
 
             dockerfile_contents[start_index:end_index + 1] = [start_marker] + replacement_content + [end_marker]
 
-            # 変更を保存する
+            # Save the changes
             with open(dockerfile_path, 'w') as file:
                 file.writelines(dockerfile_contents)
 
-            print(f"Dockerfile ({dockerfile_path}) の置き換えが完了しました。")
+            print(f"Dockerfile ({dockerfile_path}) replacement complete.")
         else:
-            print("指定された範囲が Dockerfile で見つかりませんでした。")
+            print("Specified range not found in Dockerfile.")
 
-        # .temp.txt を削除
+        # Remove .temp.txt
         os.remove(temp_file)
-        print(f"{temp_file} が削除されました。")
+        print(f"{temp_file} removed.")
     else:
-        print("指定された範囲が元のファイルで見つかりませんでした。")
+        print("Specified range not found in the source file.")
