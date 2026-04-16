@@ -13,7 +13,7 @@ Targets non-EOSL PHP versions (currently 8.2, 8.3, 8.4, 8.5).
 ## Prerequisites
 
 - This skill must be run from the root directory of the `docker-bedrock` repository
-- A Python virtual environment must exist at `.venv/` with the `requests` package installed
+- `mise` and `uv` must be available (Python 3.13 and dependencies are managed automatically)
 - GitHub CLI (`gh`) must be available
 
 ## Steps
@@ -32,7 +32,7 @@ git pull origin main
 Run `scripts/get_latest_docker_php_version.py` to fetch the latest PHP versions published on Docker Hub.
 
 ```bash
-.venv/bin/python scripts/get_latest_docker_php_version.py
+mise run update-php-versions
 ```
 
 **Note: This script fetches multiple pages from the Docker Hub API, so it takes about 2 minutes to complete.** Be mindful of timeouts.
@@ -80,10 +80,8 @@ Use `git diff` to review the changes and verify the following:
 
 Run `scripts/update_dockerfile.py` to check for any updates to the official Docker WordPress image.
 
-**Note: This script references Dockerfiles using relative paths, so it must be run from the `scripts/` directory.**
-
 ```bash
-cd scripts && ../.venv/bin/python update_dockerfile.py && cd ..
+mise run update-dockerfile
 ```
 
 This script extracts the section from `# persistent dependencies` through the various settings in the official WordPress Dockerfile, and applies it to the local Dockerfile between `# The official WordPress Dockerfile START` and `# The official WordPress Dockerfile END`.

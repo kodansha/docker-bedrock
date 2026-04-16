@@ -1,47 +1,50 @@
 import requests
 import os
+from pathlib import Path
+
+project_root = Path(__file__).parent.parent
 
 # 設定辞書
 configurations = {
     "8.5": {
         "download_url": "https://raw.githubusercontent.com/docker-library/wordpress/master/latest/php8.5/apache/Dockerfile",
         "end_phrase": "find /etc/apache2 -type f -name '*.conf' -exec sed -ri 's/([[:space:]]*LogFormat[[:space:]]+\"[^\"]*)%h([^\"]*\")/\\1%a\\2/g' '{}' +",
-        "dockerfile_path": "../php8.5/Dockerfile"
+        "dockerfile_path": project_root / "php8.5/Dockerfile"
     },
     "8.5-fpm": {
         "download_url": "https://raw.githubusercontent.com/docker-library/wordpress/master/latest/php8.5/fpm/Dockerfile",
         "end_phrase": '} > "$PHP_INI_DIR/conf.d/error-logging.ini"',
-        "dockerfile_path": "../php8.5-fpm/Dockerfile"
+        "dockerfile_path": project_root / "php8.5-fpm/Dockerfile"
     },
     "8.4": {
         "download_url": "https://raw.githubusercontent.com/docker-library/wordpress/master/latest/php8.4/apache/Dockerfile",
         "end_phrase": "find /etc/apache2 -type f -name '*.conf' -exec sed -ri 's/([[:space:]]*LogFormat[[:space:]]+\"[^\"]*)%h([^\"]*\")/\\1%a\\2/g' '{}' +",
-        "dockerfile_path": "../php8.4/Dockerfile"
+        "dockerfile_path": project_root / "php8.4/Dockerfile"
     },
     "8.4-fpm": {
         "download_url": "https://raw.githubusercontent.com/docker-library/wordpress/master/latest/php8.4/fpm/Dockerfile",
         "end_phrase": '} > "$PHP_INI_DIR/conf.d/error-logging.ini"',
-        "dockerfile_path": "../php8.4-fpm/Dockerfile"
+        "dockerfile_path": project_root / "php8.4-fpm/Dockerfile"
     },
     "8.3": {
         "download_url": "https://raw.githubusercontent.com/docker-library/wordpress/master/latest/php8.3/apache/Dockerfile",
         "end_phrase": "find /etc/apache2 -type f -name '*.conf' -exec sed -ri 's/([[:space:]]*LogFormat[[:space:]]+\"[^\"]*)%h([^\"]*\")/\\1%a\\2/g' '{}' +",
-        "dockerfile_path": "../php8.3/Dockerfile"
+        "dockerfile_path": project_root / "php8.3/Dockerfile"
     },
     "8.3-fpm": {
         "download_url": "https://raw.githubusercontent.com/docker-library/wordpress/master/latest/php8.3/fpm/Dockerfile",
         "end_phrase": '} > "$PHP_INI_DIR/conf.d/error-logging.ini"',
-        "dockerfile_path": "../php8.3-fpm/Dockerfile"
+        "dockerfile_path": project_root / "php8.3-fpm/Dockerfile"
     },
     "8.2": {
         "download_url": "https://raw.githubusercontent.com/docker-library/wordpress/master/latest/php8.2/apache/Dockerfile",
         "end_phrase": "find /etc/apache2 -type f -name '*.conf' -exec sed -ri 's/([[:space:]]*LogFormat[[:space:]]+\"[^\"]*)%h([^\"]*\")/\\1%a\\2/g' '{}' +",
-        "dockerfile_path": "../php8.2/Dockerfile"
+        "dockerfile_path": project_root / "php8.2/Dockerfile"
     },
     "8.2-fpm": {
         "download_url": "https://raw.githubusercontent.com/docker-library/wordpress/master/latest/php8.2/fpm/Dockerfile",
         "end_phrase": '} > "$PHP_INI_DIR/conf.d/error-logging.ini"',
-        "dockerfile_path": "../php8.2-fpm/Dockerfile"
+        "dockerfile_path": project_root / "php8.2-fpm/Dockerfile"
     }
 }
 
@@ -66,7 +69,7 @@ for version, config in configurations.items():
             break
 
     # .temp.txt に必要な部分を保存
-    temp_file = ".temp.txt"
+    temp_file = Path(__file__).parent / ".temp.txt"
     if start_index is not None and end_index is not None:
         with open(temp_file, 'w') as file:
             for line in lines[start_index:end_index + 1]:
