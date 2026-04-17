@@ -1,0 +1,8 @@
+[project]
+name = "docker-bedrock"
+version = "0.1.0"
+description = "This is a configured PHP Docker image as a base environment for WordPress boilerplate."
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "requests>=2.33.1",
+]

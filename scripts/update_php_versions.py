@@ -5,10 +5,10 @@ import os
 from pathlib import Path
 
 def get_latest_php_tags():
-    """Docker Hub APIから最新のPHPタグを取得"""
+    """Fetch the latest PHP tags from Docker Hub API"""
     base_url = "https://registry.hub.docker.com/v2/repositories/library/php/tags/"
     latest_versions = {}
-    max_pages = 60  # 最大ページ数を60に設定
+    max_pages = 60  # Maximum number of pages to fetch
 
     def process_page(url):
         response = requests.get(url)
@@ -17,7 +17,7 @@ def get_latest_php_tags():
 
         for tag in tags:
             tag_name = tag['name']
-            # 8.x.x および 8.x.x-fpm のパターンに対応
+            # Match patterns like 8.x.x and 8.x.x-fpm
             match = re.match(r'^(\d+\.\d+)(\.(\d+))?(?:-fpm)?$', tag_name)
             if match:
                 major_minor = match.group(1)
@@ -36,7 +36,7 @@ def get_latest_php_tags():
     while next_page_url and page_count < max_pages:
         next_page_url = process_page(next_page_url)
         page_count += 1
-        time.sleep(2)  # APIリクエスト間に2秒の間隔を設ける
+        time.sleep(2)  # Wait 2 seconds between API requests
         print('.', end='', flush=True)
 
     print(' Done!\n')
@@ -45,7 +45,7 @@ def get_latest_php_tags():
 
 
 def get_current_version_from_dockerfile(dockerfile_path):
-    """DockerfileからFROM行のPHPバージョンを抽出"""
+    """Extract the PHP version from the FROM line in a Dockerfile"""
     if not os.path.exists(dockerfile_path):
         return None
 
@@ -58,14 +58,14 @@ def get_current_version_from_dockerfile(dockerfile_path):
 
 
 def update_dockerfile(dockerfile_path, old_version, new_version):
-    """DockerfileのFROM行を更新"""
+    """Update the FROM line in a Dockerfile"""
     if not os.path.exists(dockerfile_path):
         return False
 
     with open(dockerfile_path, 'r') as f:
         content = f.read()
 
-    # FROM行を更新
+    # Update the FROM line
     new_content = re.sub(
         rf'^FROM php:{re.escape(old_version)}(-[a-z]+)?$',
         rf'FROM php:{new_version}\1',
@@ -82,14 +82,14 @@ def update_dockerfile(dockerfile_path, old_version, new_version):
 
 
 def update_workflow_yaml(yaml_path, old_version, new_version):
-    """GitHub Actions WorkflowのYAMLファイルを更新"""
+    """Update the GitHub Actions workflow YAML file"""
     if not os.path.exists(yaml_path):
         return False
 
     with open(yaml_path, 'r') as f:
         content = f.read()
 
-    # タグ内のバージョンを更新
+    # Update version strings in image tags
     new_content = re.sub(
         rf'(bedrock:(?:php)?){re.escape(old_version)}(?=\s|$)',
         rf'\g<1>{new_version}',
@@ -104,7 +104,7 @@ def update_workflow_yaml(yaml_path, old_version, new_version):
 
 
 def process_version_updates(latest_tags):
-    """バージョンごとにファイルを更新"""
+    """Update files for each PHP version"""
     script_dir = Path(__file__).parent
     project_root = script_dir.parent
 
@@ -112,12 +112,11 @@ def process_version_updates(latest_tags):
     no_updates = []
     errors = []
 
-    # PHPバージョンごとに処理
+    # Organize version information from latest_tags
     versions_to_check = {}
 
-    # latest_tagsから取得した情報を整理
     for (major_minor, tag_type), full_tag in latest_tags.items():
-        # 正規表現でバージョンを抽出
+        # Extract version using regex
         match = re.match(r'^([\d.]+)(?:-(.+))?$', full_tag)
         if match:
             version = match.group(1)
@@ -127,15 +126,15 @@ def process_version_updates(latest_tags):
                 versions_to_check[major_minor] = {}
             versions_to_check[major_minor][tag_type] = version
 
-    # バージョンごとに確認・更新
+    # Check and update each version
     for major_minor in sorted(versions_to_check.keys()):
         version_info = versions_to_check[major_minor]
 
-        # 整数部分を取得 (例: "8.5" -> "8", "5")
+        # Extract major and minor parts (e.g. "8.5" -> "8", "5")
         major, minor = major_minor.split('.')
         dir_prefix = f"php{major}.{minor}"
 
-        # Apache版の処理
+        # Process Apache variant
         if 'regular' in version_info:
             new_version = version_info['regular']
             apache_dir = project_root / dir_prefix
@@ -144,9 +143,9 @@ def process_version_updates(latest_tags):
             if dockerfile_path.exists():
                 current_version = get_current_version_from_dockerfile(dockerfile_path)
                 if current_version and current_version != new_version:
-                    # Dockerfileを更新
+                    # Update Dockerfile
                     if update_dockerfile(dockerfile_path, current_version, new_version):
-                        # Workflow YAMLも更新
+                        # Update workflow YAML
                         yaml_path = project_root / ".github" / "workflows" / f"{dir_prefix}.yml"
                         yaml_updated = update_workflow_yaml(yaml_path, current_version, new_version)
 
@@ -163,7 +162,7 @@ def process_version_updates(latest_tags):
                 elif current_version == new_version:
                     no_updates.append(f"{dir_prefix} (Apache): Already at {new_version}")
 
-        # FPM版の処理
+        # Process FPM variant
         if 'fpm' in version_info:
             new_version = version_info['fpm']
             fpm_dir = project_root / f"{dir_prefix}-fpm"
@@ -172,9 +171,9 @@ def process_version_updates(latest_tags):
             if dockerfile_path.exists():
                 current_version = get_current_version_from_dockerfile(dockerfile_path)
                 if current_version and current_version != new_version:
-                    # Dockerfileを更新
+                    # Update Dockerfile
                     if update_dockerfile(dockerfile_path, current_version, new_version):
-                        # Workflow YAMLも更新
+                        # Update workflow YAML
                         yaml_path = project_root / ".github" / "workflows" / f"{dir_prefix}.yml"
                         yaml_updated = update_workflow_yaml(yaml_path, current_version, new_version)
 
@@ -200,13 +199,13 @@ def main():
     print("=" * 70)
     print()
 
-    # 最新バージョンを取得
+    # Fetch latest versions
     latest_tags = get_latest_php_tags()
 
-    # ファイルを更新
+    # Update files
     updates, no_updates, errors = process_version_updates(latest_tags)
 
-    # 結果を表示
+    # Display results
     if updates:
         print("✅ Updated versions:")
         print("-" * 70)
