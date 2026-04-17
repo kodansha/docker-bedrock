@@ -1,4 +1,4 @@
-FROM php:8.5.3-fpm
+FROM php:8.5.5-fpm
 
 ################################################################################
 # From the official WordPress image
