@@ -1,4 +1,4 @@
-FROM php:8.5.5-apache
+FROM php:8.5.6-apache
 
 ################################################################################
 # From the official WordPress image
