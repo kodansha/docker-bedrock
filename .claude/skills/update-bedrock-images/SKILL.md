@@ -90,6 +90,8 @@ If there are updates, review the diff. **Never reformat Dockerfiles.**
 
 ### 5. Commit
 
+**Before committing, verify the current branch is the topic branch created in step 3, not `main`** (`git branch --show-current`). Never commit directly to `main`.
+
 Stage all changed files and commit.
 List the updated PHP versions in the commit message, separated by commas.
 
