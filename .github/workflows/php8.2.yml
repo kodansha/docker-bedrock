@@ -38,9 +38,9 @@ jobs:
           push: true
           tags: |
             kodansha/bedrock:php8.2
-            kodansha/bedrock:php8.2.32
+            kodansha/bedrock:php8.2.33
             ghcr.io/kodansha/bedrock:php8.2
-            ghcr.io/kodansha/bedrock:php8.2.32
+            ghcr.io/kodansha/bedrock:php8.2.33
 
       - name: Build and push PHP 8.2 (PHP-FPM) image
         uses: docker/build-push-action@v7
@@ -50,6 +50,6 @@ jobs:
           push: true
           tags: |
             kodansha/bedrock:php8.2-fpm
-            kodansha/bedrock:php8.2.32-fpm
+            kodansha/bedrock:php8.2.33-fpm
             ghcr.io/kodansha/bedrock:php8.2-fpm
-            ghcr.io/kodansha/bedrock:php8.2.32-fpm
+            ghcr.io/kodansha/bedrock:php8.2.33-fpm
