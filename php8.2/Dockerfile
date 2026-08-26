@@ -1,4 +1,4 @@
-FROM php:8.2.32-apache
+FROM php:8.2.33-apache
 
 ################################################################################
 # From the official WordPress image
