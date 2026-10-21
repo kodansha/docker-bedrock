@@ -1,0 +1,148 @@
+name: Build and push Bedrock image
+
+# Reusable workflow: builds each platform on a native runner (no QEMU),
+# pushes by digest, then merges the digests into multi-arch manifests.
+# Image version tags are derived from the FROM line of each Dockerfile.
+
+on:
+  workflow_call:
+    inputs:
+      php-version:
+        description: "PHP minor version (e.g. 8.5)"
+        required: true
+        type: string
+      latest:
+        description: "Also tag the Apache image as latest"
+        required: false
+        type: boolean
+        default: false
+
+env:
+  DOCKERHUB_REPO: kodansha/bedrock
+  GHCR_REPO: ghcr.io/kodansha/bedrock
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        variant: [apache, fpm]
+        platform:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.platform.runner }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.CR_PAT }}
+
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: ./php${{ inputs.php-version }}${{ matrix.variant == 'fpm' && '-fpm' || '' }}
+          platforms: linux/${{ matrix.platform.arch }}
+          outputs: type=image,"name=${{ env.DOCKERHUB_REPO }},${{ env.GHCR_REPO }}",push-by-digest=true,name-canonical=true,push=true
+
+      - name: Export digest
+        run: |
+          mkdir -p "${{ runner.temp }}/digests"
+          digest="${{ steps.build.outputs.digest }}"
+          touch "${{ runner.temp }}/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v7
+        with:
+          name: digests-${{ matrix.variant }}-${{ matrix.platform.arch }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    needs: build
+    strategy:
+      matrix:
+        variant: [apache, fpm]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Download digests
+        uses: actions/download-artifact@v8
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digests-${{ matrix.variant }}-*
+          merge-multiple: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.CR_PAT }}
+
+      - name: Create and push manifest list
+        working-directory: ${{ runner.temp }}/digests
+        env:
+          MINOR: ${{ inputs.php-version }}
+          VARIANT: ${{ matrix.variant }}
+          LATEST: ${{ inputs.latest }}
+        run: |
+          suffix=""
+          [ "$VARIANT" = "fpm" ] && suffix="-fpm"
+          dockerfile="$GITHUB_WORKSPACE/php${MINOR}${suffix}/Dockerfile"
+          version="$(sed -nE 's/^FROM php:([0-9]+\.[0-9]+\.[0-9]+)-.*/\1/p' "$dockerfile" | head -n1)"
+          if [ -z "$version" ]; then
+            echo "::error::Could not read PHP version from $dockerfile"
+            exit 1
+          fi
+
+          names="php${MINOR}${suffix} php${version}${suffix}"
+          if [ "$LATEST" = "true" ] && [ "$VARIANT" = "apache" ]; then
+            names="latest $names"
+          fi
+
+          tags=()
+          for repo in "$DOCKERHUB_REPO" "$GHCR_REPO"; do
+            for name in $names; do
+              tags+=(-t "${repo}:${name}")
+            done
+          done
+
+          echo "Tags: ${tags[*]}"
+          docker buildx imagetools create "${tags[@]}" \
+            $(printf "${DOCKERHUB_REPO}@sha256:%s " *)
+
+      - name: Inspect image
+        env:
+          MINOR: ${{ inputs.php-version }}
+          SUFFIX: ${{ matrix.variant == 'fpm' && '-fpm' || '' }}
+        run: |
+          docker buildx imagetools inspect "${DOCKERHUB_REPO}:php${MINOR}${SUFFIX}"
+          docker buildx imagetools inspect "${GHCR_REPO}:php${MINOR}${SUFFIX}"
