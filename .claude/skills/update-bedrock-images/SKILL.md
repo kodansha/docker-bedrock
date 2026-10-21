@@ -40,7 +40,7 @@ mise run update-php-versions
 This script does the following:
 
 - Fetches the latest PHP tags from the Docker Hub API
-- Automatically updates the Dockerfile and YAML files under `.github/workflows/` for each version
+- Automatically updates the Dockerfiles for each version
 - Outputs a summary of the updates
 
 ### 2. Verify the updates
@@ -62,17 +62,9 @@ The script from step 1 will have automatically updated the following files:
 
 - **`php8.X/Dockerfile`** - PHP version in the FROM line (e.g., `FROM php:8.4.15` → `FROM php:8.4.16`)
 - **`php8.X-fpm/Dockerfile`** - PHP version in the FROM line (e.g., `FROM php:8.4.15-fpm` → `FROM php:8.4.16-fpm`)
-- **`.github/workflows/php8.X.yml`** - Only the **Apache variant** image tags are automatically updated (e.g., `kodansha/bedrock:php8.4.15` → `kodansha/bedrock:php8.4.16`)
+Workflow YAMLs under `.github/workflows/` do **not** need to be updated. The reusable workflow (`build.yml`) reads the PHP version from the `FROM` line of each Dockerfile and derives the image tags (e.g., `php8.4.16`, `php8.4.16-fpm`) at build time.
 
-**Note: Due to regex limitations in the script, FPM variant tags (`php8.X.Y-fpm`) in the workflow YAML are NOT automatically updated.** Tags with the `-fpm` suffix must be updated manually:
-
-- `kodansha/bedrock:php8.X.Y-fpm` → update to the new version
-- `ghcr.io/kodansha/bedrock:php8.X.Y-fpm` → update to the new version
-
-Use `git diff` to review the changes and verify the following:
-
-1. Dockerfiles and workflow YAMLs for **all target versions** (8.2, 8.3, 8.4, 8.5) have been updated without omission
-2. **FPM tags in workflow YAMLs** have been manually updated to the correct version (both `kodansha/bedrock:` and `ghcr.io/kodansha/bedrock:`)
+Use `git diff` to review the changes and verify that Dockerfiles for **all target versions** (8.2, 8.3, 8.4, 8.5), both Apache and FPM, have been updated without omission.
 
 **Important: Never reformat Dockerfiles.** This would introduce unnecessary diffs.
 

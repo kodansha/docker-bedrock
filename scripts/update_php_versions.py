@@ -81,28 +81,6 @@ def update_dockerfile(dockerfile_path, old_version, new_version):
     return False
 
 
-def update_workflow_yaml(yaml_path, old_version, new_version):
-    """Update the GitHub Actions workflow YAML file"""
-    if not os.path.exists(yaml_path):
-        return False
-
-    with open(yaml_path, 'r') as f:
-        content = f.read()
-
-    # Update version strings in image tags
-    new_content = re.sub(
-        rf'(bedrock:(?:php)?){re.escape(old_version)}(?=\s|$)',
-        rf'\g<1>{new_version}',
-        content
-    )
-
-    if content != new_content:
-        with open(yaml_path, 'w') as f:
-            f.write(new_content)
-        return True
-    return False
-
-
 def process_version_updates(latest_tags):
     """Update files for each PHP version"""
     script_dir = Path(__file__).parent
@@ -145,17 +123,12 @@ def process_version_updates(latest_tags):
                 if current_version and current_version != new_version:
                     # Update Dockerfile
                     if update_dockerfile(dockerfile_path, current_version, new_version):
-                        # Update workflow YAML
-                        yaml_path = project_root / ".github" / "workflows" / f"{dir_prefix}.yml"
-                        yaml_updated = update_workflow_yaml(yaml_path, current_version, new_version)
-
                         updates.append({
                             'version': major_minor,
                             'type': 'Apache',
                             'old': current_version,
                             'new': new_version,
-                            'files': [str(dockerfile_path.relative_to(project_root))] +
-                                   ([str(yaml_path.relative_to(project_root))] if yaml_updated else [])
+                            'files': [str(dockerfile_path.relative_to(project_root))]
                         })
                     else:
                         errors.append(f"{dir_prefix} (Apache): Failed to update Dockerfile")
@@ -173,17 +146,12 @@ def process_version_updates(latest_tags):
                 if current_version and current_version != new_version:
                     # Update Dockerfile
                     if update_dockerfile(dockerfile_path, current_version, new_version):
-                        # Update workflow YAML
-                        yaml_path = project_root / ".github" / "workflows" / f"{dir_prefix}.yml"
-                        yaml_updated = update_workflow_yaml(yaml_path, current_version, new_version)
-
                         updates.append({
                             'version': major_minor,
                             'type': 'FPM',
                             'old': current_version,
                             'new': new_version,
-                            'files': [str(dockerfile_path.relative_to(project_root))] +
-                                   ([str(yaml_path.relative_to(project_root))] if yaml_updated else [])
+                            'files': [str(dockerfile_path.relative_to(project_root))]
                         })
                     else:
                         errors.append(f"{dir_prefix}-fpm: Failed to update Dockerfile")
