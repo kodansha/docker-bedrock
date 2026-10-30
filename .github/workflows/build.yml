@@ -55,6 +55,8 @@ jobs:
       - name: Build and push by digest
         id: build
         uses: docker/build-push-action@v7
+        env:
+          DOCKER_BUILD_SUMMARY: false
         with:
           context: ./php${{ inputs.php-version }}${{ matrix.variant == 'fpm' && '-fpm' || '' }}
           platforms: linux/${{ matrix.platform.arch }}
