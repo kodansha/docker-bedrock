@@ -110,19 +110,27 @@ jobs:
           git commit -am "$title"
 
           pr="$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number')"
-          if [ -n "$pr" ] && git fetch -q origin "$BRANCH"; then
+          force="--force"
+          if [ -n "$pr" ]; then
+            # Fail the step if the PR branch cannot be fetched, rather than pushing blindly
+            git fetch -q origin "$BRANCH"
+            remote="$(git rev-parse FETCH_HEAD)"
+
             # Do not overwrite commits pushed by someone else to the open PR
-            if git log --format=%ae origin/main..FETCH_HEAD | grep -qvxF "$BOT_EMAIL"; then
+            if git log --format=%ae "origin/main..$remote" | grep -qvxF "$BOT_EMAIL"; then
               echo "::warning::PR #$pr has commits not made by this workflow, so it was not updated. Merge or close it to resume automatic updates."
               exit 0
             fi
-            if git diff --quiet HEAD FETCH_HEAD; then
+            if git diff --quiet HEAD "$remote"; then
               echo "PR #$pr is already up to date."
               exit 0
             fi
+
+            # Only overwrite the commit that was checked above
+            force="--force-with-lease=$BRANCH:$remote"
           fi
 
-          git push --force origin "$BRANCH"
+          git push "$force" origin "$BRANCH"
           if [ -n "$pr" ]; then
             gh pr edit "$pr" --title "$title" --body "$body"
           else
