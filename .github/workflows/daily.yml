@@ -1,0 +1,152 @@
+name: Daily rebuild
+
+# Rebuilds all supported images every day so that they pick up the latest
+# base image and OS packages, then scans them with Trivy and reports to Slack.
+
+on:
+  schedule:
+    # 08:00 JST
+    - cron: "0 23 * * *"
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php-version: "8.2"
+          - php-version: "8.3"
+          - php-version: "8.4"
+          - php-version: "8.5"
+            latest: true
+    uses: ./.github/workflows/build.yml
+    with:
+      php-version: ${{ matrix.php-version }}
+      latest: ${{ matrix.latest == true }}
+    secrets: inherit
+
+  scan:
+    needs: build
+    if: ${{ !cancelled() }}
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ["8.2", "8.3", "8.4", "8.5"]
+        variant: [apache, fpm]
+    runs-on: ubuntu-latest
+    env:
+      # Pull the public GHCR copy anonymously so this job holds no registry credentials
+      IMAGE: ghcr.io/kodansha/bedrock:php${{ matrix.php-version }}${{ matrix.variant == 'fpm' && '-fpm' || '' }}
+      NAME: php${{ matrix.php-version }}${{ matrix.variant == 'fpm' && '-fpm' || '' }}
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Scan image
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: ${{ env.IMAGE }}
+          scanners: vuln
+          format: json
+          output: trivy.json
+
+      - name: Summarize results
+        run: |
+          version="$(sed -nE 's/^FROM php:([0-9]+\.[0-9]+\.[0-9]+)-.*/\1/p' "$NAME/Dockerfile" | head -n1)"
+          mkdir -p summary
+          jq -c --arg name "$NAME" --arg version "$version" '
+            [.Results[]?.Vulnerabilities[]?]
+            | unique_by([.VulnerabilityID, .PkgName, .InstalledVersion]) as $v
+            | def count(s): [$v[] | select(.Severity == s)] | length;
+              def fixable(s): [$v[] | select(.Severity == s and (.FixedVersion // "") != "")] | length;
+            {
+              name: $name,
+              version: $version,
+              critical: count("CRITICAL"),
+              high: count("HIGH"),
+              medium: count("MEDIUM"),
+              low: count("LOW"),
+              fixable_critical: fixable("CRITICAL"),
+              fixable_high: fixable("HIGH")
+            }' trivy.json > "summary/$NAME.json"
+          cat "summary/$NAME.json"
+
+          {
+            echo "### $IMAGE ($version)"
+            echo
+            echo "| ID | Severity | Package | Installed | Fixed |"
+            echo "| --- | --- | --- | --- | --- |"
+            jq -r '
+              [.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL" or .Severity == "HIGH")]
+              | unique_by([.VulnerabilityID, .PkgName, .InstalledVersion])
+              | sort_by(.Severity)[]
+              | "| \(.VulnerabilityID) | \(.Severity) | \(.PkgName) | \(.InstalledVersion) | \(.FixedVersion // "") |"
+            ' trivy.json
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload summary
+        uses: actions/upload-artifact@v7
+        with:
+          name: scan-${{ env.NAME }}
+          path: |
+            summary/${{ env.NAME }}.json
+            trivy.json
+          retention-days: 30
+
+  notify:
+    needs: [build, scan]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download summaries
+        uses: actions/download-artifact@v8
+        with:
+          path: scans
+          pattern: scan-*
+
+      - name: Build Slack payload
+        env:
+          BUILD_RESULT: ${{ needs.build.result }}
+          SCAN_RESULT: ${{ needs.scan.result }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ "$BUILD_RESULT" = "success" ]; then
+            title=":white_check_mark: Bedrock images rebuilt (PHP 8.2, 8.3, 8.4, 8.5)"
+          else
+            title=":x: Bedrock image rebuild ${BUILD_RESULT}"
+          fi
+
+          table="$(
+            {
+              echo "IMAGE VERSION CRIT HIGH MED LOW FIXABLE(C/H)"
+              find scans -name 'php*.json' -path '*/summary/*' -print0 2>/dev/null \
+                | xargs -0 -r cat \
+                | jq -rs 'sort_by(.name)[]
+                    | "\(.name) \(.version) \(.critical) \(.high) \(.medium) \(.low) \(.fixable_critical)/\(.fixable_high)"'
+            } | column -t
+          )"
+
+          if [ "$SCAN_RESULT" != "success" ]; then
+            table="${table}"$'\n\n'"Some scans ${SCAN_RESULT}."
+          fi
+
+          jq -n --arg title "$title" --arg table "$table" --arg url "$RUN_URL" '{
+            text: $title,
+            blocks: [
+              { type: "section", text: { type: "mrkdwn", text: "*\($title)*" } },
+              { type: "section", text: { type: "mrkdwn", text: "*Trivy scan results*\n```\($table)```" } },
+              { type: "context", elements: [ { type: "mrkdwn", text: "<\($url)|View workflow run>" } ] }
+            ]
+          }' > payload.json
+          cat payload.json
+
+      - name: Notify Slack
+        uses: slackapi/slack-github-action@v4.0.0
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload-file-path: payload.json
