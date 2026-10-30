@@ -12,6 +12,12 @@ on:
 env:
   BRANCH: auto-update
   SUPPORTED_VERSIONS: "8.2 8.3 8.4 8.5"
+  BOT_EMAIL: 41898283+github-actions[bot]@users.noreply.github.com
+
+defaults:
+  run:
+    # Explicit bash enables pipefail
+    shell: bash
 
 jobs:
   update:
@@ -22,6 +28,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          # Always generate updates from main, even for manual runs on other branches
+          ref: main
+          fetch-depth: 0
 
       - name: Set up uv
         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
@@ -95,12 +105,24 @@ jobs:
           )"
 
           git config user.name "github-actions[bot]"
-          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git config user.email "$BOT_EMAIL"
           git switch -C "$BRANCH"
           git commit -am "$title"
-          git push --force origin "$BRANCH"
 
           pr="$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number')"
+          if [ -n "$pr" ] && git fetch -q origin "$BRANCH"; then
+            # Do not overwrite commits pushed by someone else to the open PR
+            if git log --format=%ae origin/main..FETCH_HEAD | grep -qvxF "$BOT_EMAIL"; then
+              echo "::warning::PR #$pr has commits not made by this workflow, so it was not updated. Merge or close it to resume automatic updates."
+              exit 0
+            fi
+            if git diff --quiet HEAD FETCH_HEAD; then
+              echo "PR #$pr is already up to date."
+              exit 0
+            fi
+          fi
+
+          git push --force origin "$BRANCH"
           if [ -n "$pr" ]; then
             gh pr edit "$pr" --title "$title" --body "$body"
           else
