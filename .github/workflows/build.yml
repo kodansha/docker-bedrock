@@ -58,6 +58,9 @@ jobs:
         with:
           context: ./php${{ inputs.php-version }}${{ matrix.variant == 'fpm' && '-fpm' || '' }}
           platforms: linux/${{ matrix.platform.arch }}
+          # Always rebuild from the latest base image and packages
+          pull: true
+          no-cache: true
           outputs: type=image,"name=${{ env.DOCKERHUB_REPO }},${{ env.GHCR_REPO }}",push-by-digest=true,name-canonical=true,push=true
 
       - name: Export digest
@@ -69,7 +72,7 @@ jobs:
       - name: Upload digest
         uses: actions/upload-artifact@v7
         with:
-          name: digests-${{ matrix.variant }}-${{ matrix.platform.arch }}
+          name: digests-php${{ inputs.php-version }}-${{ matrix.variant }}-${{ matrix.platform.arch }}
           path: ${{ runner.temp }}/digests/*
           if-no-files-found: error
           retention-days: 1
@@ -88,7 +91,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           path: ${{ runner.temp }}/digests
-          pattern: digests-${{ matrix.variant }}-*
+          pattern: digests-php${{ inputs.php-version }}-${{ matrix.variant }}-*
           merge-multiple: true
 
       - name: Set up Docker Buildx
