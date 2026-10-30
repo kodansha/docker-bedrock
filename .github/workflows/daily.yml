@@ -1,7 +1,7 @@
 name: Daily rebuild
 
 # Rebuilds all supported images every day so that they pick up the latest
-# base image and OS packages, then scans them with Trivy and reports to Slack.
+# base image and OS packages, then scans them with Docker Scout and reports to Slack.
 
 on:
   schedule:
@@ -37,12 +37,11 @@ jobs:
         arch: [amd64, arm64]
     runs-on: ubuntu-latest
     env:
-      # Pull the public GHCR copy anonymously so this job holds no registry credentials
+      # Pull the public GHCR copy anonymously; Docker Hub credentials are only used to authenticate Scout
       IMAGE: ghcr.io/kodansha/bedrock:php${{ matrix.php-version }}${{ matrix.variant == 'fpm' && '-fpm' || '' }}
       NAME: php${{ matrix.php-version }}${{ matrix.variant == 'fpm' && '-fpm' || '' }}
       KEY: php${{ matrix.php-version }}${{ matrix.variant == 'fpm' && '-fpm' || '' }}-${{ matrix.arch }}
-      # Scan each platform of the multi-arch image separately
-      TRIVY_PLATFORM: linux/${{ matrix.arch }}
+      ARCH: ${{ matrix.arch }}
     permissions:
       contents: read
     steps:
@@ -50,23 +49,38 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Scan image
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        uses: docker/scout-action@221e7f4860634eeb1579e3bd7ca232e577bd1864 # v1.26.0
         with:
-          scan-type: image
-          image-ref: ${{ env.IMAGE }}
-          scanners: vuln
-          format: json
-          output: trivy.json
+          command: cves
+          image: registry://${{ env.IMAGE }}
+          # Scan each platform of the multi-arch image separately
+          platform: linux/${{ matrix.arch }}
+          sarif-file: scout.sarif
+          summary: true
+          write-comment: false
+          dockerhub-user: ${{ secrets.DOCKERHUB_USERNAME }}
+          dockerhub-password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Summarize results
         run: |
           version="$(sed -nE 's/^FROM php:([0-9]+\.[0-9]+\.[0-9]+)-.*/\1/p' "$NAME/Dockerfile" | head -n1)"
           mkdir -p summary
-          jq -c --arg name "$NAME" --arg arch "${TRIVY_PLATFORM#linux/}" --arg version "$version" '
-            [.Results[]?.Vulnerabilities[]?]
-            | unique_by([.VulnerabilityID, .PkgName, .InstalledVersion]) as $v
-            | def count(s): [$v[] | select(.Severity == s)] | length;
-              def fixable(s): [$v[] | select(.Severity == s and (.FixedVersion // "") != "")] | length;
+          # Scout emits one SARIF rule per CVE, so counts are unique CVEs
+          jq -c --arg name "$NAME" --arg arch "$ARCH" --arg version "$version" '
+            def pkg: sub("^pkg:[^/]+/"; "") | sub("\\?.*$"; "") | split("/") | last
+              | gsub("%2B"; "+"; "i") | gsub("%3A"; ":"; "i") | gsub("%7E"; "~"; "i") | sub("@"; " ");
+            [.runs[0].tool.driver.rules[]? | {
+              id: .id,
+              severity: ((.properties.cvssV3_severity // "UNSPECIFIED") | ascii_upcase),
+              score: (.properties["security-severity"] // ""),
+              fixed: ((.properties.fixed_version // "") | if . == "not fixed" then "" else . end),
+              packages: ([.properties.purls[]? | pkg] | unique),
+              url: ((.helpUri // "") | sub("\\?.*$"; "")),
+              # help.text starts with the CVE description, followed by "---" and Debian tracker notes
+              description: ((.help.text // "") | (split("\n\n---")[0] // "") | gsub("\\s+"; " ") | ltrimstr(" ") | rtrimstr(" "))
+            }] as $v
+            | def count(s): [$v[] | select(.severity == s)] | length;
+              def fixable(s): [$v[] | select(.severity == s and .fixed != "")] | length;
             {
               name: $name,
               arch: $arch,
@@ -76,22 +90,11 @@ jobs:
               medium: count("MEDIUM"),
               low: count("LOW"),
               fixable_critical: fixable("CRITICAL"),
-              fixable_high: fixable("HIGH")
-            }' trivy.json > "summary/$KEY.json"
+              fixable_high: fixable("HIGH"),
+              critical_cves: [$v[] | select(.severity == "CRITICAL") | del(.severity)],
+              high_cves: [$v[] | select(.severity == "HIGH") | del(.severity, .description)]
+            }' scout.sarif > "summary/$KEY.json"
           cat "summary/$KEY.json"
-
-          {
-            echo "### $IMAGE ($version, $TRIVY_PLATFORM)"
-            echo
-            echo "| ID | Severity | Package | Installed | Fixed |"
-            echo "| --- | --- | --- | --- | --- |"
-            jq -r '
-              [.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL" or .Severity == "HIGH")]
-              | unique_by([.VulnerabilityID, .PkgName, .InstalledVersion])
-              | sort_by(.Severity)[]
-              | "| \(.VulnerabilityID) | \(.Severity) | \(.PkgName) | \(.InstalledVersion) | \(.FixedVersion // "") |"
-            ' trivy.json
-          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload summary
         uses: actions/upload-artifact@v7
@@ -99,7 +102,7 @@ jobs:
           name: scan-${{ env.KEY }}
           path: |
             summary/${{ env.KEY }}.json
-            trivy.json
+            scout.sarif
           retention-days: 30
 
   notify:
@@ -120,6 +123,11 @@ jobs:
           BUILD_RESULT: ${{ needs.build.result }}
           SCAN_RESULT: ${{ needs.scan.result }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          # Only this many CVEs are listed to stay within Slack message limits
+          MAX_CRITICAL: 10
+          MAX_HIGH: 20
+          # Number of scan matrix entries (PHP versions x variants x architectures)
+          EXPECTED_SCANS: 16
         run: |
           if [ "$BUILD_RESULT" = "success" ]; then
             title=":white_check_mark: Bedrock images rebuilt (PHP 8.2, 8.3, 8.4, 8.5)"
@@ -128,15 +136,20 @@ jobs:
           fi
 
           mkdir -p scans
-          rows="$(
-            find scans -name 'php*.json' -path '*/summary/*' -print0 \
-              | xargs -0 -r cat \
-              | jq -rs 'sort_by(.name, .arch)[]
-                  | "\(.name) \(.arch) \(.version) \(.critical) \(.high) \(.medium) \(.low) \(.fixable_critical)/\(.fixable_high)"'
-          )"
+          find scans -name 'php*.json' -path '*/summary/*' -print0 \
+            | xargs -0 -r cat \
+            | jq -s 'sort_by(.name, .arch)' > results.json
+
+          # Merge architectures whose results are identical into one row
+          rows="$(jq -r '
+            group_by([.name, .version, .critical, .high, .medium, .low, .fixable_critical, .fixable_high])
+            | map(.[0] + {arch: (map(.arch) | join(","))})
+            | sort_by(.name, .arch)[]
+            | "\(.name) \(.version) \(.arch) \(.critical) \(.high) \(.medium) \(.low) \(.fixable_critical)/\(.fixable_high)"
+          ' results.json)"
 
           if [ -n "$rows" ]; then
-            table="$(printf '%s\n%s\n' "IMAGE ARCH VERSION CRIT HIGH MED LOW FIXABLE(C/H)" "$rows" | column -t)"
+            table="$(printf '%s\n%s\n' "IMAGE PHP ARCH CRIT HIGH MED LOW FIXABLE(C/H)" "$rows" | column -t)"
           else
             table="No scan results available."
           fi
@@ -145,14 +158,120 @@ jobs:
             table="${table}"$'\n\n'"Scan job result: ${SCAN_RESULT}"
           fi
 
-          jq -n --arg title "$title" --arg table "$table" --arg url "$RUN_URL" '{
-            text: $title,
-            blocks: [
-              { type: "section", text: { type: "mrkdwn", text: "*\($title)*" } },
-              { type: "section", text: { type: "mrkdwn", text: "*Trivy scan results*\n```\($table)```" } },
-              { type: "context", elements: [ { type: "mrkdwn", text: "<\($url)|View workflow run>" } ] }
-            ]
-          }' > payload.json
+          # Collapse the same CVE found in several images into one entry
+          aggregate() {
+            jq --arg field "$1" '
+            length as $total
+            | (group_by(.name) | map({key: .[0].name, value: length}) | from_entries) as $archs
+            | [.[] as $img | $img[$field][]? | . + {name: $img.name, arch: $img.arch}]
+            | group_by(.id)
+            | map({
+                id: .[0].id,
+                score: .[0].score,
+                url: .[0].url,
+                description: (.[0].description // ""),
+                fixed: (map(.fixed) | unique | map(select(. != "")) | join(", ")),
+                packages: (map(.packages[]) | unique),
+                images: (
+                  if length == $total then "All scanned images"
+                  elif (map(.name) | unique | length) == ($archs | length) and (group_by(.name) | map(map(.arch)) | unique | length) == 1
+                  then "All images (\(map(.arch) | unique | join(", ")))"
+                  else group_by(.name) | map(
+                    if length == $archs[.[0].name] then .[0].name
+                    else "\(.[0].name) (\(map(.arch) | join(", ")))" end
+                  ) | join(", ")
+                  end
+                )
+              })
+            | sort_by(-(.score | tonumber? // 0), .id)
+            ' results.json
+          }
+          aggregate critical_cves > critical.json
+          aggregate high_cves > high.json
+
+          jq -n \
+            --arg title "$title" \
+            --arg table "$table" \
+            --arg url "$RUN_URL" \
+            --argjson max "$MAX_CRITICAL" \
+            --argjson max_high "$MAX_HIGH" \
+            --argjson scanned "$(jq length results.json)" \
+            --argjson expected "$EXPECTED_SCANS" \
+            --arg scan_result "$SCAN_RESULT" \
+            --slurpfile critical critical.json \
+            --slurpfile high high.json '
+            def esc: gsub("&"; "&amp;") | gsub("<"; "&lt;") | gsub(">"; "&gt;");
+            def trunc(n): if length > n then .[:n - 1] + "…" else . end;
+            def link: if .url != "" then "<\(.url)|\(.id)>" else .id end;
+            $critical[0] as $crit
+            | $high[0] as $high
+            | ($crit | map(select(.fixed != "")) | length) as $fixable
+            # Missing artifacts or failed scans must never be reported as a clean result
+            | ($scan_result != "success" or $scanned < $expected) as $incomplete
+            | " (only \($scanned)/\($expected) images scanned)" as $coverage
+            | (if $scanned == 0 then
+                ":warning: *No scan results*"
+              elif ($crit | length) > 0 then
+                ":red_circle: *\($crit | length) critical vulnerabilit\(if ($crit | length) == 1 then "y" else "ies" end)* (\($fixable) fixable)"
+                + (if $incomplete then " :warning: Scan incomplete\($coverage)" else "" end)
+              elif $incomplete then
+                ":warning: *Scan incomplete*\($coverage), no critical vulnerabilities in the scanned images"
+              else
+                ":large_green_circle: No critical vulnerabilities"
+              end) as $status
+            | {
+              text: "\($title) - \($status | gsub("[*]"; ""))",
+              blocks: (
+                [
+                  { type: "header", text: { type: "plain_text", text: ($title | trunc(150)), emoji: true } },
+                  { type: "section", text: { type: "mrkdwn", text: $status } },
+                  { type: "section", text: { type: "mrkdwn", text: "*Docker Scout results* (unique CVEs per image)\n```\($table)```" } }
+                ]
+                + (if ($crit | length) > 0 then [{ type: "divider" }] else [] end)
+                + [
+                  $crit[:$max][] | {
+                    type: "section",
+                    text: {
+                      type: "mrkdwn",
+                      text: ((
+                        [
+                          "*\(link)*"
+                            + (if .score != "" then "  CVSS \(.score)" else "" end),
+                          (.description | select(. != "") | esc | trunc(200)),
+                          "• Package: `\(.packages[:3] | join("`, `"))`\(if (.packages | length) > 3 then " +\((.packages | length) - 3) more" else "" end)",
+                          "• Fix: \(if .fixed != "" then "`\(.fixed)`" else "not available yet" end)",
+                          "• Images: \(.images | esc)"
+                        ] | join("\n")
+                      ) | trunc(3000))
+                    }
+                  }
+                ]
+                + (if ($crit | length) > $max then
+                    [{ type: "context", elements: [ { type: "mrkdwn", text: "…and \(($crit | length) - $max) more critical CVEs. See the workflow run for details." } ] }]
+                  else [] end)
+                # High CVEs are listed one per line, 10 lines per block to stay under the 3000-char block limit
+                + (if ($high | length) > 0 then
+                    [
+                      { type: "divider" },
+                      { type: "section", text: { type: "mrkdwn", text: "*\($high | length) high vulnerabilit\(if ($high | length) == 1 then "y" else "ies" end)* (\($high | map(select(.fixed != "")) | length) fixable)" } }
+                    ]
+                    + ([$high[:$max_high][] |
+                        "• \(link)"
+                        + (if .score != "" then "  CVSS \(.score)" else "" end)
+                        + " · `\(.packages | map(split(" ")[0]) | unique | join("`, `"))`"
+                        + (if .fixed != "" then " · fix `\(.fixed)`" else "" end)
+                        + " · \(.images | esc)"
+                      ] as $lines
+                      | [range(0; $lines | length; 10) as $i | { type: "section", text: { type: "mrkdwn", text: ($lines[$i:$i + 10] | join("\n") | trunc(3000)) } }])
+                    + (if ($high | length) > $max_high then
+                        [{ type: "context", elements: [ { type: "mrkdwn", text: "…and \(($high | length) - $max_high) more high CVEs. See the workflow run for details." } ] }]
+                      else [] end)
+                  else [] end)
+                + [
+                  { type: "context", elements: [ { type: "mrkdwn", text: "<\($url)|View workflow run> · Full reports are in the job summaries and scan-* artifacts" } ] }
+                ]
+              )
+            }' > payload.json
           cat payload.json
 
       - name: Notify Slack
