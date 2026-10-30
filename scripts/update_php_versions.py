@@ -1,205 +1,113 @@
-import requests
 import re
-import time
-import os
+import sys
 from pathlib import Path
 
-def get_latest_php_tags():
-    """Fetch the latest PHP tags from Docker Hub API"""
-    base_url = "https://registry.hub.docker.com/v2/repositories/library/php/tags/"
-    latest_versions = {}
-    max_pages = 60  # Maximum number of pages to fetch
+import requests
 
-    def process_page(url):
-        response = requests.get(url)
-        data = response.json()
-        tags = data['results']
+# Supported (non-EOSL) PHP versions
+SUPPORTED_VERSIONS = ["8.2", "8.3", "8.4", "8.5"]
 
-        for tag in tags:
-            tag_name = tag['name']
-            # Match patterns like 8.x.x and 8.x.x-fpm
-            match = re.match(r'^(\d+\.\d+)(\.(\d+))?(?:-fpm)?$', tag_name)
-            if match:
-                major_minor = match.group(1)
-                patch = int(match.group(3)) if match.group(3) else 0
-                tag_type = 'fpm' if '-fpm' in tag_name else 'regular'
-                key = (major_minor, tag_type)
+# Dockerfile directory suffix -> Docker Hub tag suffix
+VARIANTS = {"": "apache", "-fpm": "fpm"}
 
-                if key not in latest_versions or patch > latest_versions[key][1]:
-                    latest_versions[key] = (tag_name, patch)
+PHP_RELEASES_URL = "https://www.php.net/releases/index.php"
+DOCKER_HUB_TAG_URL = "https://hub.docker.com/v2/namespaces/library/repositories/php/tags/{tag}"
 
-        return data.get('next')
-
-    next_page_url = base_url
-    page_count = 0
-    print("Fetching latest PHP versions from Docker Hub", end='', flush=True)
-    while next_page_url and page_count < max_pages:
-        next_page_url = process_page(next_page_url)
-        page_count += 1
-        time.sleep(2)  # Wait 2 seconds between API requests
-        print('.', end='', flush=True)
-
-    print(' Done!\n')
-
-    return {k: v[0] for k, v in latest_versions.items()}
+project_root = Path(__file__).parent.parent
 
 
-def get_current_version_from_dockerfile(dockerfile_path):
+def get_latest_php_release(major_minor):
+    """Fetch the latest release of a PHP branch (e.g. 8.5 -> 8.5.12) from php.net"""
+    response = requests.get(PHP_RELEASES_URL, params={"json": "", "version": major_minor}, timeout=30)
+    response.raise_for_status()
+    return response.json()["version"]
+
+
+def docker_hub_tag_exists(tag):
+    """Check whether a tag of the official php image exists on Docker Hub"""
+    response = requests.get(DOCKER_HUB_TAG_URL.format(tag=tag), timeout=30)
+    if response.status_code == 404:
+        return False
+    response.raise_for_status()
+    return True
+
+
+def parse_version(version):
+    return tuple(int(part) for part in version.split("."))
+
+
+def get_current_version(dockerfile_path):
     """Extract the PHP version from the FROM line in a Dockerfile"""
-    if not os.path.exists(dockerfile_path):
-        return None
-
-    with open(dockerfile_path, 'r') as f:
-        first_line = f.readline().strip()
-        match = re.match(r'^FROM php:([\d.]+)(?:-(.+))?$', first_line)
-        if match:
-            return match.group(1)
-    return None
+    match = re.search(r"^FROM php:([\d.]+)-", dockerfile_path.read_text(), flags=re.MULTILINE)
+    return match.group(1) if match else None
 
 
 def update_dockerfile(dockerfile_path, old_version, new_version):
     """Update the FROM line in a Dockerfile"""
-    if not os.path.exists(dockerfile_path):
-        return False
-
-    with open(dockerfile_path, 'r') as f:
-        content = f.read()
-
-    # Update the FROM line
+    content = dockerfile_path.read_text()
     new_content = re.sub(
-        rf'^FROM php:{re.escape(old_version)}(-[a-z]+)?$',
-        rf'FROM php:{new_version}\1',
+        rf"^FROM php:{re.escape(old_version)}-",
+        f"FROM php:{new_version}-",
         content,
         count=1,
-        flags=re.MULTILINE
+        flags=re.MULTILINE,
     )
-
-    if content != new_content:
-        with open(dockerfile_path, 'w') as f:
-            f.write(new_content)
-        return True
-    return False
+    if content == new_content:
+        return False
+    dockerfile_path.write_text(new_content)
+    return True
 
 
-def process_version_updates(latest_tags):
-    """Update files for each PHP version"""
-    script_dir = Path(__file__).parent
-    project_root = script_dir.parent
-
+def main():
     updates = []
     no_updates = []
     errors = []
 
-    # Organize version information from latest_tags
-    versions_to_check = {}
+    for major_minor in SUPPORTED_VERSIONS:
+        try:
+            latest = get_latest_php_release(major_minor)
+        except (requests.RequestException, KeyError, ValueError) as e:
+            errors.append(f"PHP {major_minor}: Failed to fetch the latest release from php.net ({e})")
+            continue
 
-    for (major_minor, tag_type), full_tag in latest_tags.items():
-        # Extract version using regex
-        match = re.match(r'^([\d.]+)(?:-(.+))?$', full_tag)
-        if match:
-            version = match.group(1)
-            suffix = match.group(2) or ''
+        for dir_suffix, tag_suffix in VARIANTS.items():
+            label = f"php{major_minor}{dir_suffix}"
+            dockerfile_path = project_root / label / "Dockerfile"
+            current = get_current_version(dockerfile_path)
+            if current is None:
+                errors.append(f"{label}: Could not read the PHP version from {dockerfile_path}")
+                continue
 
-            if major_minor not in versions_to_check:
-                versions_to_check[major_minor] = {}
-            versions_to_check[major_minor][tag_type] = version
+            if parse_version(latest) <= parse_version(current):
+                no_updates.append(f"{label}: Already at {current}")
+                continue
 
-    # Check and update each version
-    for major_minor in sorted(versions_to_check.keys()):
-        version_info = versions_to_check[major_minor]
+            tag = f"{latest}-{tag_suffix}"
+            try:
+                exists = docker_hub_tag_exists(tag)
+            except requests.RequestException as e:
+                errors.append(f"{label}: Failed to check php:{tag} on Docker Hub ({e})")
+                continue
+            if not exists:
+                no_updates.append(f"{label}: PHP {latest} released, but php:{tag} is not on Docker Hub yet")
+                continue
 
-        # Extract major and minor parts (e.g. "8.5" -> "8", "5")
-        major, minor = major_minor.split('.')
-        dir_prefix = f"php{major}.{minor}"
+            if update_dockerfile(dockerfile_path, current, latest):
+                updates.append(f"{label}: {current} → {latest}")
+            else:
+                errors.append(f"{label}: Failed to update {dockerfile_path}")
 
-        # Process Apache variant
-        if 'regular' in version_info:
-            new_version = version_info['regular']
-            apache_dir = project_root / dir_prefix
-            dockerfile_path = apache_dir / "Dockerfile"
+    for title, messages in [("✅ Updated", updates), ("ℹ️  No updates needed", no_updates), ("❌ Errors", errors)]:
+        if messages:
+            print(f"{title}:")
+            for message in messages:
+                print(f"  {message}")
+            print()
 
-            if dockerfile_path.exists():
-                current_version = get_current_version_from_dockerfile(dockerfile_path)
-                if current_version and current_version != new_version:
-                    # Update Dockerfile
-                    if update_dockerfile(dockerfile_path, current_version, new_version):
-                        updates.append({
-                            'version': major_minor,
-                            'type': 'Apache',
-                            'old': current_version,
-                            'new': new_version,
-                            'files': [str(dockerfile_path.relative_to(project_root))]
-                        })
-                    else:
-                        errors.append(f"{dir_prefix} (Apache): Failed to update Dockerfile")
-                elif current_version == new_version:
-                    no_updates.append(f"{dir_prefix} (Apache): Already at {new_version}")
-
-        # Process FPM variant
-        if 'fpm' in version_info:
-            new_version = version_info['fpm']
-            fpm_dir = project_root / f"{dir_prefix}-fpm"
-            dockerfile_path = fpm_dir / "Dockerfile"
-
-            if dockerfile_path.exists():
-                current_version = get_current_version_from_dockerfile(dockerfile_path)
-                if current_version and current_version != new_version:
-                    # Update Dockerfile
-                    if update_dockerfile(dockerfile_path, current_version, new_version):
-                        updates.append({
-                            'version': major_minor,
-                            'type': 'FPM',
-                            'old': current_version,
-                            'new': new_version,
-                            'files': [str(dockerfile_path.relative_to(project_root))]
-                        })
-                    else:
-                        errors.append(f"{dir_prefix}-fpm: Failed to update Dockerfile")
-                elif current_version == new_version:
-                    no_updates.append(f"{dir_prefix} (FPM): Already at {new_version}")
-
-    return updates, no_updates, errors
-
-
-def main():
-    print("=" * 70)
-    print("PHP Docker Image Version Updater")
-    print("=" * 70)
-    print()
-
-    # Fetch latest versions
-    latest_tags = get_latest_php_tags()
-
-    # Update files
-    updates, no_updates, errors = process_version_updates(latest_tags)
-
-    # Display results
-    if updates:
-        print("✅ Updated versions:")
-        print("-" * 70)
-        for update in updates:
-            print(f"  PHP {update['version']} ({update['type']}): {update['old']} → {update['new']}")
-            for file in update['files']:
-                print(f"    - {file}")
-        print()
-
-    if no_updates:
-        print("ℹ️  No updates needed:")
-        print("-" * 70)
-        for msg in no_updates:
-            print(f"  {msg}")
-        print()
+    print(f"Summary: {len(updates)} updated, {len(no_updates)} up-to-date, {len(errors)} errors")
 
     if errors:
-        print("❌ Errors:")
-        print("-" * 70)
-        for error in errors:
-            print(f"  {error}")
-        print()
-
-    print("=" * 70)
-    print(f"Summary: {len(updates)} updated, {len(no_updates)} up-to-date, {len(errors)} errors")
-    print("=" * 70)
+        sys.exit(1)
 
 
 if __name__ == "__main__":

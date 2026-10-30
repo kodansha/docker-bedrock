@@ -1,5 +1,6 @@
 import requests
 import os
+import sys
 from pathlib import Path
 
 project_root = Path(__file__).parent.parent
@@ -48,12 +49,18 @@ configurations = {
     }
 }
 
+errors = []
+
 # Process Dockerfile for each version
 for version, config in configurations.items():
     print(f"Processing version {version}.")
 
     # Download and get text content
-    response = requests.get(config["download_url"])
+    response = requests.get(config["download_url"], timeout=30)
+    if not response.ok:
+        print(f"Failed to download {config['download_url']} ({response.status_code}).")
+        errors.append(version)
+        continue
     lines = response.text.split('\n')
 
     # Identify the range to extract
@@ -111,9 +118,15 @@ for version, config in configurations.items():
             print(f"Dockerfile ({dockerfile_path}) replacement complete.")
         else:
             print("Specified range not found in Dockerfile.")
+            errors.append(version)
 
         # Remove .temp.txt
         os.remove(temp_file)
         print(f"{temp_file} removed.")
     else:
         print("Specified range not found in the source file.")
+        errors.append(version)
+
+if errors:
+    print(f"Failed to update: {', '.join(errors)}")
+    sys.exit(1)

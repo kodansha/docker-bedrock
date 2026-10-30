@@ -35,13 +35,14 @@ Run `scripts/update_php_versions.py` to fetch the latest PHP versions published 
 mise run update-php-versions
 ```
 
-**Note: This script fetches multiple pages from the Docker Hub API, so it takes about 2 minutes to complete.** Be mindful of timeouts.
-
 This script does the following:
 
-- Fetches the latest PHP tags from the Docker Hub API
+- Fetches the latest release of each supported version from php.net
+- Checks that the matching `-apache` / `-fpm` tags exist on Docker Hub (skips versions not published yet)
 - Automatically updates the Dockerfiles for each version
 - Outputs a summary of the updates
+
+The `Update PHP versions` workflow (`.github/workflows/update.yml`) runs the same scripts daily at 13:00 JST and opens a PR from the `auto-update` branch. Check for an open PR from that branch before updating manually.
 
 ### 2. Verify the updates
 
