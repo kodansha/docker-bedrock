@@ -1,0 +1,144 @@
+name: Update PHP versions
+
+# Checks for new PHP releases of the supported versions and syncs the official
+# WordPress Dockerfile section, then opens (or updates) a PR when anything changed.
+
+on:
+  schedule:
+    # 13:00 JST
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+
+env:
+  BRANCH: auto-update
+  SUPPORTED_VERSIONS: "8.2 8.3 8.4 8.5"
+  BOT_EMAIL: 41898283+github-actions[bot]@users.noreply.github.com
+
+defaults:
+  run:
+    # Explicit bash enables pipefail
+    shell: bash
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          # Always generate updates from main, even for manual runs on other branches
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+
+      - name: Sync official WordPress Dockerfile
+        id: wordpress
+        run: |
+          status=0
+          uv run python scripts/update_dockerfile.py || status=$?
+          echo "failed=$([ "$status" -ne 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          if git diff --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Update PHP versions
+        id: php
+        run: |
+          status=0
+          uv run python scripts/update_php_versions.py | tee php-versions.log || status=$?
+          echo "failed=$([ "$status" -ne 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          {
+            echo '```'
+            cat php-versions.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          rm php-versions.log
+
+      - name: Create or update PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WORDPRESS_CHANGED: ${{ steps.wordpress.outputs.changed }}
+        run: |
+          if git diff --quiet; then
+            echo "No changes."
+            exit 0
+          fi
+
+          # Compare the FROM lines with main to list the PHP version changes
+          versions=()
+          changes=()
+          for minor in $SUPPORTED_VERSIONS; do
+            for suffix in "" "-fpm"; do
+              dockerfile="php${minor}${suffix}/Dockerfile"
+              old="$(git show "HEAD:$dockerfile" | sed -nE 's/^FROM php:([0-9.]+)-.*/\1/p' | head -n1)"
+              new="$(sed -nE 's/^FROM php:([0-9.]+)-.*/\1/p' "$dockerfile" | head -n1)"
+              if [ "$old" != "$new" ]; then
+                changes+=("- PHP ${old} → ${new} (\`php${minor}${suffix}\`)")
+                [[ " ${versions[*]} " == *" $new "* ]] || versions+=("$new")
+              fi
+            done
+          done
+
+          parts=()
+          if [ ${#versions[@]} -gt 0 ]; then
+            parts+=("PHP $(IFS=,; echo "${versions[*]}" | sed 's/,/, /g')")
+          fi
+          if [ "$WORDPRESS_CHANGED" = "true" ]; then
+            parts+=("WordPress Dockerfile updated")
+            changes+=("- Sync the official WordPress Dockerfile section")
+          fi
+          title="$(IFS=/; echo "${parts[*]}" | sed 's|/| / |g')"
+
+          body="$(
+            echo "## Summary"
+            echo
+            printf '%s\n' "${changes[@]}"
+            echo
+            echo "Opened by the \`Update PHP versions\` workflow. Images are rebuilt by the \`Daily rebuild\` workflow after merge."
+          )"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "$BOT_EMAIL"
+          git switch -C "$BRANCH"
+          git commit -am "$title"
+
+          pr="$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number')"
+          force="--force"
+          if [ -n "$pr" ]; then
+            # Fail the step if the PR branch cannot be fetched, rather than pushing blindly
+            git fetch -q origin "$BRANCH"
+            remote="$(git rev-parse FETCH_HEAD)"
+
+            # Do not overwrite commits pushed by someone else to the open PR
+            if git log --format=%ae "origin/main..$remote" | grep -qvxF "$BOT_EMAIL"; then
+              echo "::warning::PR #$pr has commits not made by this workflow, so it was not updated. Merge or close it to resume automatic updates."
+              exit 0
+            fi
+            if git diff --quiet HEAD "$remote"; then
+              echo "PR #$pr is already up to date."
+              exit 0
+            fi
+
+            # Only overwrite the commit that was checked above
+            force="--force-with-lease=$BRANCH:$remote"
+          fi
+
+          git push "$force" origin "$BRANCH"
+          if [ -n "$pr" ]; then
+            gh pr edit "$pr" --title "$title" --body "$body"
+          else
+            gh pr create --base main --head "$BRANCH" --title "$title" --body "$body"
+          fi
+
+      - name: Fail on script errors
+        if: ${{ steps.wordpress.outputs.failed == 'true' || steps.php.outputs.failed == 'true' }}
+        run: |
+          echo "::error::Some updates failed. Check the logs of the previous steps."
+          exit 1
