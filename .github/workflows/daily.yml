@@ -126,6 +126,8 @@ jobs:
           # Only this many CVEs are listed to stay within Slack message limits
           MAX_CRITICAL: 10
           MAX_HIGH: 20
+          # Number of scan matrix entries (PHP versions x variants x architectures)
+          EXPECTED_SCANS: 16
         run: |
           if [ "$BUILD_RESULT" = "success" ]; then
             title=":white_check_mark: Bedrock images rebuilt (PHP 8.2, 8.3, 8.4, 8.5)"
@@ -194,6 +196,8 @@ jobs:
             --argjson max "$MAX_CRITICAL" \
             --argjson max_high "$MAX_HIGH" \
             --argjson scanned "$(jq length results.json)" \
+            --argjson expected "$EXPECTED_SCANS" \
+            --arg scan_result "$SCAN_RESULT" \
             --slurpfile critical critical.json \
             --slurpfile high high.json '
             def esc: gsub("&"; "&amp;") | gsub("<"; "&lt;") | gsub(">"; "&gt;");
@@ -202,12 +206,18 @@ jobs:
             $critical[0] as $crit
             | $high[0] as $high
             | ($crit | map(select(.fixed != "")) | length) as $fixable
+            # Missing artifacts or failed scans must never be reported as a clean result
+            | ($scan_result != "success" or $scanned < $expected) as $incomplete
+            | " (only \($scanned)/\($expected) images scanned)" as $coverage
             | (if $scanned == 0 then
-                ":warning: No scan results"
-              elif ($crit | length) == 0 then
-                ":large_green_circle: No critical vulnerabilities"
-              else
+                ":warning: *No scan results*"
+              elif ($crit | length) > 0 then
                 ":red_circle: *\($crit | length) critical vulnerabilit\(if ($crit | length) == 1 then "y" else "ies" end)* (\($fixable) fixable)"
+                + (if $incomplete then " :warning: Scan incomplete\($coverage)" else "" end)
+              elif $incomplete then
+                ":warning: *Scan incomplete*\($coverage), no critical vulnerabilities in the scanned images"
+              else
+                ":large_green_circle: No critical vulnerabilities"
               end) as $status
             | {
               text: "\($title) - \($status | gsub("[*]"; ""))",
