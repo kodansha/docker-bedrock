@@ -7,6 +7,16 @@ project_root = Path(__file__).parent.parent
 
 # Configuration dictionary
 configurations = {
+    "8.6": {
+        "download_url": "https://raw.githubusercontent.com/docker-library/wordpress/master/latest/php8.6/apache/Dockerfile",
+        "end_phrase": "find /etc/apache2 -type f -name '*.conf' -exec sed -ri 's/([[:space:]]*LogFormat[[:space:]]+\"[^\"]*)%h([^\"]*\")/\\1%a\\2/g' '{}' +",
+        "dockerfile_path": project_root / "php8.6/Dockerfile"
+    },
+    "8.6-fpm": {
+        "download_url": "https://raw.githubusercontent.com/docker-library/wordpress/master/latest/php8.6/fpm/Dockerfile",
+        "end_phrase": '} > "$PHP_INI_DIR/conf.d/error-logging.ini"',
+        "dockerfile_path": project_root / "php8.6-fpm/Dockerfile"
+    },
     "8.5": {
         "download_url": "https://raw.githubusercontent.com/docker-library/wordpress/master/latest/php8.5/apache/Dockerfile",
         "end_phrase": "find /etc/apache2 -type f -name '*.conf' -exec sed -ri 's/([[:space:]]*LogFormat[[:space:]]+\"[^\"]*)%h([^\"]*\")/\\1%a\\2/g' '{}' +",

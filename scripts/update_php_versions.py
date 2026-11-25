@@ -5,7 +5,7 @@ from pathlib import Path
 import requests
 
 # Supported (non-EOSL) PHP versions
-SUPPORTED_VERSIONS = ["8.2", "8.3", "8.4", "8.5"]
+SUPPORTED_VERSIONS = ["8.2", "8.3", "8.4", "8.5", "8.6"]
 
 # Dockerfile directory suffix -> Docker Hub tag suffix
 VARIANTS = {"": "apache", "-fpm": "fpm"}

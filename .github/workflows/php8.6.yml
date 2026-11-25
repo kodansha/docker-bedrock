@@ -1,0 +1,12 @@
+name: PHP 8.6
+
+on:
+  workflow_dispatch:
+
+jobs:
+  docker:
+    uses: ./.github/workflows/build.yml
+    with:
+      php-version: "8.6"
+      latest: true
+    secrets: inherit

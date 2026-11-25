@@ -8,5 +8,4 @@ jobs:
     uses: ./.github/workflows/build.yml
     with:
       php-version: "8.5"
-      latest: true
     secrets: inherit
