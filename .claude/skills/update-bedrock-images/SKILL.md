@@ -42,7 +42,7 @@ This script does the following:
 - Automatically updates the Dockerfiles for each version
 - Outputs a summary of the updates
 
-The `Update PHP versions` workflow (`.github/workflows/update.yml`) runs the same scripts daily at 13:00 JST and opens a PR from the `auto-update` branch. Check for an open PR from that branch before updating manually.
+The `Update PHP versions` workflow (`.github/workflows/update.yml`) runs the same scripts daily at 06:00 JST and opens a PR from the `auto-update` branch. Check for an open PR from that branch before updating manually.
 
 ### 2. Verify the updates
 
