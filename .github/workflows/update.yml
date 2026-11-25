@@ -5,8 +5,8 @@ name: Update PHP versions
 
 on:
   schedule:
-    # 13:00 JST
-    - cron: "0 4 * * *"
+    # 06:00 JST
+    - cron: "0 21 * * *"
   workflow_dispatch:
 
 env:
