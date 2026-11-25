@@ -1,6 +1,6 @@
 ---
 name: update-bedrock-images
-description: A skill for updating PHP versions in Bedrock Docker base images. Updates images for non-EOSL PHP versions (currently 8.2, 8.3, 8.4, 8.5) to the latest versions on Docker Hub and creates a PR.
+description: A skill for updating PHP versions in Bedrock Docker base images. Updates images for non-EOSL PHP versions (currently 8.2, 8.3, 8.4, 8.5, 8.6) to the latest versions on Docker Hub and creates a PR.
 ---
 
 # Update Bedrock Docker Images
@@ -8,7 +8,7 @@ description: A skill for updating PHP versions in Bedrock Docker base images. Up
 ## Overview
 
 Update Bedrock Docker base images to the latest PHP versions.
-Targets non-EOSL PHP versions (currently 8.2, 8.3, 8.4, 8.5).
+Targets non-EOSL PHP versions (currently 8.2, 8.3, 8.4, 8.5, 8.6).
 
 ## Prerequisites
 
@@ -65,7 +65,7 @@ The script from step 1 will have automatically updated the following files:
 - **`php8.X-fpm/Dockerfile`** - PHP version in the FROM line (e.g., `FROM php:8.4.15-fpm` → `FROM php:8.4.16-fpm`)
 Workflow YAMLs under `.github/workflows/` do **not** need to be updated. The reusable workflow (`build.yml`) reads the PHP version from the `FROM` line of each Dockerfile and derives the image tags (e.g., `php8.4.16`, `php8.4.16-fpm`) at build time.
 
-Use `git diff` to review the changes and verify that Dockerfiles for **all target versions** (8.2, 8.3, 8.4, 8.5), both Apache and FPM, have been updated without omission.
+Use `git diff` to review the changes and verify that Dockerfiles for **all target versions** (8.2, 8.3, 8.4, 8.5, 8.6), both Apache and FPM, have been updated without omission.
 
 **Important: Never reformat Dockerfiles.** This would introduce unnecessary diffs.
 

@@ -19,6 +19,7 @@ jobs:
           - php-version: "8.3"
           - php-version: "8.4"
           - php-version: "8.5"
+          - php-version: "8.6"
             latest: true
     uses: ./.github/workflows/build.yml
     with:
@@ -32,7 +33,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-version: ["8.2", "8.3", "8.4", "8.5"]
+        php-version: ["8.2", "8.3", "8.4", "8.5", "8.6"]
         variant: [apache, fpm]
         arch: [amd64, arm64]
     runs-on: ubuntu-latest
@@ -130,7 +131,7 @@ jobs:
           EXPECTED_SCANS: 16
         run: |
           if [ "$BUILD_RESULT" = "success" ]; then
-            title=":white_check_mark: Bedrock images rebuilt (PHP 8.2, 8.3, 8.4, 8.5)"
+            title=":white_check_mark: Bedrock images rebuilt (PHP 8.2, 8.3, 8.4, 8.5, 8.6)"
           else
             title=":x: Bedrock image rebuild ${BUILD_RESULT}"
           fi
