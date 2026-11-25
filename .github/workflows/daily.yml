@@ -128,7 +128,7 @@ jobs:
           MAX_CRITICAL: 10
           MAX_HIGH: 20
           # Number of scan matrix entries (PHP versions x variants x architectures)
-          EXPECTED_SCANS: 16
+          EXPECTED_SCANS: 20
         run: |
           if [ "$BUILD_RESULT" = "success" ]; then
             title=":white_check_mark: Bedrock images rebuilt (PHP 8.2, 8.3, 8.4, 8.5, 8.6)"
